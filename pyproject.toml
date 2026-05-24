@@ -13,7 +13,7 @@ dependencies = [
     "pydantic>=2.13.3",
     "pyyaml>=6.0.3",
     "rank-bm25>=0.2.2",
-    "typer>=0.24.2",
+    "typer>=0.25.1",
     "watchdog>=6.0.0",
 ]
 
