@@ -1,0 +1,24 @@
+name: 'Close Stale Issues and PRs'
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited]
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-issue-stale: 60
+          days-before-pr-stale: 30
+          days-before-close: 7
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          exempt-issue-labels: 'epic,help wanted,good first issue'
+          exempt-pr-labels: 'epic,help wanted,good first issue'
