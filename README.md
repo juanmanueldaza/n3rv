@@ -1,6 +1,19 @@
-# NERV 🤖🔺
+```
+█████████████████████████████████████████████████████████
 
-> **Because an angel without a harness is unmanageable. And a harness without an angel is just expensive metal.**
+██    ██ ████████ ████████  ██     ██ 
+███   ██ ██       ██     ██ ██     ██ 
+████  ██ ██       ██     ██ ██     ██ 
+██ ██ ██ ██████   ████████  ██     ██ 
+██  ████ ██       ██   ██    ██   ██  
+██   ███ ██       ██    ██    ██ ██   
+██    ██ ████████ ██     ██    ███    
+
+  Because an angel without a harness is unmanageable.
+  And a harness without an angel is just expensive metal.
+
+█████████████████████████████████████████████████████████
+```
 
 `nerv` is an open-source engineering harness designed to contain, restrain, and orchestrate Large Language Models (LLMs). Instead of treating agents as independent chatbots, NERV builds a rigid operational framework — handling tools, dual-store memory, and real-time project context injection. Integrates natively with opencode via MCP servers, agent skills, slash commands, and sub-agents.
 
