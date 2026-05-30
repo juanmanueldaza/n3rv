@@ -17,6 +17,13 @@
 
 `nerv` is an open-source engineering harness designed to contain, restrain, and orchestrate Large Language Models (LLMs). Instead of treating agents as independent chatbots, NERV builds a rigid operational framework — handling tools, dual-store memory, and real-time project context injection. Integrates natively with opencode via MCP servers, agent skills, slash commands, and sub-agents.
 
+[![PyPI version](https://img.shields.io/pypi/v/nerv)](https://pypi.org/project/nerv/)
+[![Python versions](https://img.shields.io/pypi/pyversions/nerv)](https://pypi.org/project/nerv/)
+[![License](https://img.shields.io/pypi/l/nerv)](https://github.com/juanmanueldaza/nerv/blob/main/LICENSE)
+[![CI](https://github.com/juanmanueldaza/nerv/actions/workflows/ci.yml/badge.svg)](https://github.com/juanmanueldaza/nerv/actions/workflows/ci.yml)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat-square)](https://github.com/juanmanueldaza/nerv/issues)
+[![Good First Issues](https://img.shields.io/github/issues/juanmanueldaza/nerv/good%20first%20issue?style=flat-square&label=good%20first%20issues)](https://github.com/juanmanueldaza/nerv/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+
 [Architecture](docs/ARCHITECTURE.md) • [SDD Workflow](docs/SDD-WORKFLOW.md) • [MCP Tools](docs/MCP-TOOLS.md) • [Deployment](docs/DEPLOYMENT.md) • [Evangelion](EVANGELION.md) • [Security](SECURITY.md) • [Contributing](CONTRIBUTING.md)
 
 ---
