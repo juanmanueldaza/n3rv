@@ -22,6 +22,12 @@ nerv = "nerv.cli:main"
 nerv-memory = "nerv.mcp.memory_server:main"
 nerv-hub = "nerv.mcp.hub_server:main"
 
+[project.urls]
+Homepage = "https://nerv.daza.ar"
+Repository = "https://github.com/juanmanueldaza/nerv"
+"Bug Tracker" = "https://github.com/juanmanueldaza/nerv/issues"
+"Changelog" = "https://github.com/juanmanueldaza/nerv/releases"
+
 [build-system]
 requires = ["uv_build>=0.8.11,<0.9.0"]
 build-backend = "uv_build"
