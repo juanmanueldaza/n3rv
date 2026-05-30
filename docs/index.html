@@ -3,12 +3,12 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>NERV — Invisible engineering infrastructure for AI agents</title>
+        <title>NERV — Invisible infrastructure for AI agents</title>
         <meta name="description" content="NERV is an open-source engineering harness that contains, restrains, and orchestrates LLMs. Agent-to-agent hub, persistent semantic memory, and structured development workflows." />
         <meta name="keywords" content="nerv, ai-agents, a2a, mcp, opencode, agent-framework, chromadb, rag, llm, developer-tools" />
         <link rel="canonical" href="https://nerv.daza.ar/" />
         <meta name="author" content="Juan Manuel Daza" />
-        <meta name="theme-color" content="#0a1628" />
+        <meta name="theme-color" content="#0a0000" />
 
         <meta property="og:title" content="NERV — Engineering harness for AI agents" />
         <meta property="og:description" content="Invisible infrastructure that gives AI agents the tools, memory, and context to operate intelligently. A2A hub, MAGI memory, SDD workflow." />
@@ -21,46 +21,136 @@
         <meta name="twitter:description" content="Because an angel without a harness is unmanageable." />
 
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Inter:wght@400;600;700;900&display=swap');
+
             *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
             body {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-                background: #0a1628;
-                color: #c8d6e5;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                background: #070005;
+                color: #c0c0c0;
                 line-height: 1.7;
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+                overflow-x: hidden;
+                position: relative;
             }
-            .container { max-width: 800px; width: 100%; padding: 2rem 1.5rem; }
-            header { text-align: center; padding: 4rem 0 2rem; }
+
+            /* Scanlines overlay */
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255,0,0,0.015) 2px,
+                    rgba(255,0,0,0.015) 4px
+                );
+                pointer-events: none;
+                z-index: 1000;
+            }
+
+            /* VHS noise */
+            body::after {
+                content: '';
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+                pointer-events: none;
+                z-index: 999;
+                opacity: 0.15;
+            }
+
+            .container {
+                max-width: 860px;
+                width: 100%;
+                padding: 2rem 1.5rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            /* Neon glow lines */
+            .glow-line {
+                height: 2px;
+                background: linear-gradient(90deg, transparent, #ff0033, #ff00aa, transparent);
+                width: 100%;
+                margin: 0.5rem 0;
+                box-shadow: 0 0 12px #ff0033, 0 0 24px #ff003366;
+                opacity: 0.6;
+            }
+
+            header { text-align: center; padding: 3rem 0 1rem; position: relative; }
+
             .logo {
                 font-family: 'Courier New', monospace;
-                font-size: 1rem;
-                color: #4a9eff;
-                letter-spacing: 2px;
-                line-height: 1.3;
+                font-size: 0.85rem;
+                color: #ff0033;
+                letter-spacing: 1px;
+                line-height: 1.2;
                 white-space: pre;
-                margin-bottom: 2rem;
+                margin-bottom: 1rem;
+                text-shadow: 0 0 10px #ff0033, 0 0 20px #ff003366;
+                opacity: 0.85;
             }
+
             h1 {
-                font-size: 2.5rem;
-                font-weight: 700;
-                color: #e8edf5;
-                margin-bottom: 0.5rem;
+                font-size: 4.5rem;
+                font-weight: 900;
+                color: #ff0033;
+                letter-spacing: 12px;
+                text-shadow: 0 0 20px #ff0033, 0 0 40px #ff003366, 0 0 80px #ff003322;
+                margin-bottom: 0.25rem;
+                font-family: 'Inter', sans-serif;
+                line-height: 1;
             }
+
+            .kanji {
+                font-family: 'Noto Sans SC', sans-serif;
+                font-size: 1.2rem;
+                color: #ff00aa;
+                letter-spacing: 8px;
+                text-shadow: 0 0 8px #ff00aa, 0 0 16px #ff00aa44;
+                margin-bottom: 1.5rem;
+                opacity: 0.7;
+            }
+
             .subtitle {
-                font-size: 1.15rem;
-                color: #7f8fa6;
+                font-size: 1.05rem;
+                color: #888;
                 max-width: 600px;
-                margin: 0 auto 2rem;
+                margin: 0 auto 1rem;
+                letter-spacing: 1px;
             }
+
             .tagline {
-                color: #4a9eff;
+                color: #ff0033;
                 font-style: italic;
                 font-size: 1rem;
                 margin-bottom: 2rem;
+                text-shadow: 0 0 8px #ff003344;
             }
+
+            .neo-divider {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                margin: 1rem 0 2rem;
+                color: #ff00aa;
+                font-size: 0.75rem;
+                letter-spacing: 4px;
+                opacity: 0.5;
+            }
+            .neo-divider .line {
+                height: 1px;
+                width: 60px;
+                background: linear-gradient(90deg, transparent, #ff00aa, transparent);
+            }
+
             .badges {
                 display: flex;
                 flex-wrap: wrap;
@@ -68,77 +158,236 @@
                 gap: 6px;
                 margin-bottom: 2rem;
             }
-            .badges img { height: 22px; }
-            .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 2rem 0; }
+            .badges img {
+                height: 22px;
+                filter: saturate(0.6) hue-rotate(300deg);
+            }
+
+            .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 2rem 0; }
+
             .btn {
                 display: inline-flex; align-items: center; gap: 8px;
-                padding: 12px 28px; border-radius: 8px;
-                font-size: 1rem; font-weight: 600; text-decoration: none;
+                padding: 12px 28px;
+                font-size: 0.9rem; font-weight: 600; text-decoration: none; text-transform: uppercase;
+                letter-spacing: 2px;
                 transition: all 0.2s;
+                position: relative;
+                overflow: hidden;
             }
             .btn-primary {
-                background: #4a9eff; color: #0a1628;
+                background: #ff0033; color: #070005;
+                border: none;
+                box-shadow: 0 0 12px #ff003366;
             }
-            .btn-primary:hover { background: #3a8eef; transform: translateY(-1px); }
+            .btn-primary:hover {
+                background: #ff1a47;
+                box-shadow: 0 0 24px #ff0033;
+                transform: translateY(-2px);
+            }
             .btn-secondary {
-                background: transparent; color: #4a9eff;
-                border: 1.5px solid #4a9eff;
+                background: transparent; color: #ff0033;
+                border: 1.5px solid #ff0033;
+                box-shadow: 0 0 6px #ff003322;
             }
-            .btn-secondary:hover { background: rgba(74,158,255,0.1); }
+            .btn-secondary:hover {
+                background: rgba(255,0,51,0.08);
+                box-shadow: 0 0 12px #ff003344;
+            }
             .btn-ghost {
-                background: transparent; color: #7f8fa6;
-                border: 1px solid #2d3a4e;
+                background: transparent; color: #666;
+                border: 1px solid #332;
             }
-            .btn-ghost:hover { color: #c8d6e5; border-color: #4a9eff; }
+            .btn-ghost:hover { color: #ff0033; border-color: #ff0033; }
 
             section { margin: 3rem 0; }
+
             h2 {
-                font-size: 1.5rem; font-weight: 600; color: #e8edf5;
-                margin-bottom: 1.5rem; padding-bottom: 0.5rem;
-                border-bottom: 1px solid #1a2a40;
+                font-size: 1.3rem;
+                font-weight: 700;
+                color: #ff0033;
+                margin-bottom: 1.5rem;
+                padding-bottom: 0.5rem;
+                text-transform: uppercase;
+                letter-spacing: 4px;
+                text-shadow: 0 0 8px #ff003344;
+                display: flex;
+                align-items: center;
+                gap: 12px;
             }
+            h2::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: linear-gradient(90deg, #ff0033, transparent);
+            }
+
             .feature-grid {
-                display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
             }
             @media (max-width: 600px) { .feature-grid { grid-template-columns: 1fr; } }
+
             .feature-card {
-                background: #0f1f35; border: 1px solid #1a2a40; border-radius: 12px;
-                padding: 1.5rem; transition: border-color 0.2s;
+                background: linear-gradient(135deg, #0d0005 0%, #110010 100%);
+                border: 1px solid #220022;
+                border-radius: 4px;
+                padding: 1.5rem;
+                transition: all 0.3s;
+                position: relative;
             }
-            .feature-card:hover { border-color: #4a9eff; }
-            .feature-card h3 { color: #4a9eff; font-size: 1.05rem; margin-bottom: 0.75rem; }
-            .feature-card p { font-size: 0.925rem; color: #7f8fa6; }
+            .feature-card::before {
+                content: '';
+                position: absolute;
+                top: 0; left: 0; right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, #ff0033, #ff00aa, transparent);
+                opacity: 0;
+                transition: opacity 0.3s;
+            }
+            .feature-card:hover {
+                border-color: #ff003344;
+                transform: translateY(-2px);
+            }
+            .feature-card:hover::before { opacity: 1; }
+
+            .feature-card h3 {
+                color: #ff00aa;
+                font-size: 1rem;
+                margin-bottom: 0.75rem;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                text-shadow: 0 0 6px #ff00aa22;
+            }
+            .feature-card p { font-size: 0.875rem; color: #888; line-height: 1.6; }
+            .feature-card strong { color: #ccc; }
             .feature-card code {
-                font-size: 0.825rem; background: #0a1628; padding: 2px 6px;
-                border-radius: 4px; color: #e8edf5;
+                font-size: 0.8rem;
+                background: #0a0005;
+                padding: 2px 6px;
+                border-radius: 2px;
+                color: #ff00aa;
+                border: 1px solid #220022;
             }
 
             .section-links {
-                display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
             }
             .section-links a {
-                color: #7f8fa6; text-decoration: none; padding: 8px 16px;
-                border: 1px solid #2d3a4e; border-radius: 8px; font-size: 0.925rem;
+                color: #666;
+                text-decoration: none;
+                padding: 8px 16px;
+                border: 1px solid #220022;
+                font-size: 0.825rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
                 transition: all 0.2s;
+                border-radius: 2px;
             }
-            .section-links a:hover { color: #4a9eff; border-color: #4a9eff; }
+            .section-links a:hover {
+                color: #ff0033;
+                border-color: #ff0033;
+                box-shadow: 0 0 8px #ff003322;
+            }
 
             .install-box {
-                background: #0f1f35; border: 1px solid #1a2a40; border-radius: 12px;
-                padding: 1.5rem; margin: 1.5rem 0;
+                background: linear-gradient(135deg, #0d0005 0%, #110010 100%);
+                border: 1px solid #220022;
+                border-radius: 4px;
+                padding: 1.5rem;
+                margin: 1.5rem 0;
             }
             .install-box pre {
-                background: #0a1628; padding: 1rem; border-radius: 8px;
-                overflow-x: auto; font-size: 0.875rem; color: #e8edf5;
-                font-family: 'SF Mono', 'Fira Code', monospace;
+                background: #050002;
+                padding: 1rem;
+                overflow-x: auto;
+                font-size: 0.85rem;
+                color: #ff00aa;
+                font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+                border-left: 2px solid #ff0033;
+                box-shadow: inset 0 0 20px rgba(255,0,51,0.03);
             }
-            .install-box .comment { color: #5a7a9a; }
+            .install-box .comment { color: #442233; }
+
+            .stats-row {
+                display: flex;
+                justify-content: center;
+                gap: 2rem;
+                margin: 2rem 0;
+                flex-wrap: wrap;
+            }
+            .stat {
+                text-align: center;
+            }
+            .stat-num {
+                font-size: 1.8rem;
+                font-weight: 900;
+                color: #ff0033;
+                text-shadow: 0 0 10px #ff003344;
+                letter-spacing: 2px;
+            }
+            .stat-label {
+                font-size: 0.7rem;
+                color: #555;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+            }
 
             footer {
-                text-align: center; padding: 3rem 0; color: #3d5a78; font-size: 0.85rem;
-                border-top: 1px solid #1a2a40; margin-top: 2rem;
+                text-align: center;
+                padding: 3rem 0;
+                color: #332;
+                font-size: 0.8rem;
+                border-top: 1px solid #1a0010;
+                margin-top: 2rem;
+                letter-spacing: 1px;
             }
-            footer a { color: #4a9eff; text-decoration: none; }
+            footer a { color: #ff0033; text-decoration: none; }
+            footer a:hover { text-shadow: 0 0 8px #ff003344; }
+
+            /* Glitch keyframes */
+            @keyframes glitch-1 {
+                0%, 100% { transform: translate(0); }
+                20% { transform: translate(-2px, 1px); }
+                40% { transform: translate(2px, -1px); }
+                60% { transform: translate(-1px, -1px); }
+                80% { transform: translate(1px, 2px); }
+            }
+            @keyframes glitch-2 {
+                0%, 100% { transform: translate(0); opacity: 0.5; }
+                15% { transform: translate(3px, -2px); opacity: 0.7; }
+                30% { transform: translate(-3px, 1px); opacity: 0.3; }
+                45% { transform: translate(0); opacity: 0.5; }
+            }
+            @keyframes flicker {
+                0%, 100% { opacity: 1; }
+                92% { opacity: 1; }
+                93% { opacity: 0.3; }
+                94% { opacity: 0.8; }
+                95% { opacity: 0.2; }
+                96% { opacity: 0.9; }
+            }
+            @keyframes pulse-glow {
+                0%, 100% { opacity: 0.6; }
+                50% { opacity: 1; }
+            }
+
+            .glitch {
+                animation: glitch-1 3s infinite;
+            }
+            .glitch::after {
+                content: 'NERV';
+                position: absolute;
+                top: 0;
+                left: 0;
+                color: #00e5ff;
+                animation: glitch-2 2s infinite;
+                clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+                opacity: 0;
+            }
         </style>
     </head>
     <body>
@@ -147,35 +396,65 @@
                 <div class="logo">
 ████████████████████████████████████████████████████████████
 
-██    ██ ████████ ████████  ██     ██
-███   ██ ██       ██     ██ ██     ██
-████  ██ ██       ██     ██ ██     ██
-██ ██ ██ ██████   ████████  ██     ██
-██  ████ ██       ██   ██    ██   ██
-██   ███ ██       ██    ██    ██ ██
-██    ██ ████████ ██     ██    ███
+██    ██ ████████  ████████  ██     ██
+███   ██ ██        ██     ██ ██     ██
+████  ██ ██        ██     ██ ██     ██
+██ ██ ██ ██████    ████████  ██     ██
+██  ████ ██        ██   ██    ██   ██
+██   ███ ██        ██    ██    ██ ██
+██    ██ ████████  ██     ██    ███
 
 ████████████████████████████████████████████████████████████
                 </div>
-                <h1>NERV</h1>
+
+                <h1 class="glitch">NERV</h1>
+                <div class="kanji">■■■■ ■■■■</div>
+
+                <div class="glow-line"></div>
+
                 <p class="subtitle">
-                    Invisible engineering infrastructure that contains, restrains, and orchestrates Large Language Models.
+                    INVISIBLE ENGINEERING INFRASTRUCTURE FOR AI AGENTS
                 </p>
                 <p class="tagline">"Because an angel without a harness is unmanageable."</p>
 
+                <div class="neo-divider">
+                    <span class="line"></span>
+                    <span>◆ NEO TOKYO ◆</span>
+                    <span class="line"></span>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat">
+                        <div class="stat-num">14</div>
+                        <div class="stat-label">Agent Skills</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-num">5</div>
+                        <div class="stat-label">MCP Servers</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-num">8</div>
+                        <div class="stat-label">SDD Phases</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-num">2</div>
+                        <div class="stat-label">Memory Layers</div>
+                    </div>
+                </div>
+
                 <div class="badges">
-                    <img src="https://img.shields.io/github/license/juanmanueldaza/nerv?style=flat-square&color=4a9eff" alt="License" />
-                    <img src="https://img.shields.io/github/stars/juanmanueldaza/nerv?style=flat-square&color=4a9eff" alt="Stars" />
-                    <img src="https://img.shields.io/github/v/release/juanmanueldaza/nerv?style=flat-square&color=4a9eff" alt="Version" />
-                    <img src="https://img.shields.io/github/actions/workflow/status/juanmanueldaza/nerv/ci.yml?style=flat-square&color=4a9eff" alt="CI" />
-                    <img src="https://img.shields.io/github/issues/juanmanueldaza/nerv/good%20first%20issue?style=flat-square&label=good%20first%20issues&color=4a9eff" alt="Good First Issues" />
+                    <img src="https://img.shields.io/github/license/juanmanueldaza/nerv?style=flat-square&color=ff0033" alt="License" />
+                    <img src="https://img.shields.io/github/stars/juanmanueldaza/nerv?style=flat-square&color=ff0033" alt="Stars" />
+                    <img src="https://img.shields.io/github/v/release/juanmanueldaza/nerv?style=flat-square&color=ff00aa" alt="Version" />
+                    <img src="https://img.shields.io/github/actions/workflow/status/juanmanueldaza/nerv/ci.yml?style=flat-square&color=ff0033" alt="CI" />
+                    <img src="https://img.shields.io/github/issues/juanmanueldaza/nerv/good%20first%20issue?style=flat-square&label=good%20first%20issues&color=ff00aa" alt="Good First Issues" />
                 </div>
 
                 <div class="btn-group">
-                    <a href="https://github.com/juanmanueldaza/nerv" class="btn btn-primary">GitHub</a>
-                    <a href="https://github.com/juanmanueldaza/nerv#readme" class="btn btn-secondary">README</a>
-                    <a href="https://github.com/juanmanueldaza/nerv/blob/main/docs/ARCHITECTURE.md" class="btn btn-ghost">Architecture</a>
-                    <a href="https://github.com/juanmanueldaza/nerv/blob/main/CONTRIBUTING.md" class="btn btn-ghost">Contribute</a>
+                    <a href="https://github.com/juanmanueldaza/nerv" class="btn btn-primary">⚡ GitHub</a>
+                    <a href="https://github.com/juanmanueldaza/nerv#readme" class="btn btn-secondary">▸ README</a>
+                    <a href="https://github.com/juanmanueldaza/nerv/blob/main/docs/ARCHITECTURE.md" class="btn btn-ghost">▸ Architecture</a>
+                    <a href="https://github.com/juanmanueldaza/nerv/blob/main/CONTRIBUTING.md" class="btn btn-ghost">▸ Contribute</a>
                 </div>
             </header>
 
@@ -236,6 +515,7 @@ nerv init</pre>
             <footer>
                 <p>NERV is free software under the <a href="https://github.com/juanmanueldaza/nerv/blob/main/LICENSE">GNU GPL v2.0</a>.</p>
                 <p>Built by <a href="https://github.com/juanmanueldaza">Juan Manuel Daza</a>.</p>
+                <p style="margin-top: 0.5rem; font-size: 0.7rem; color: #221122;">TOKYO IS ABOUT TO BE REBORN</p>
             </footer>
         </div>
     </body>
