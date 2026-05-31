@@ -1,1 +1,1 @@
-"""A2A hub implementation for NERV."""
+"""A2A hub implementation for N3RV."""

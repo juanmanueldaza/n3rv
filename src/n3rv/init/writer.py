@@ -6,10 +6,10 @@ import logging
 from enum import StrEnum
 from pathlib import Path
 
-logger = logging.getLogger("nerv.init.writer")
+logger = logging.getLogger("n3rv.init.writer")
 
-MARKER_START = "# >>> NERV-MARKER-START"
-MARKER_END = "# >>> NERV-MARKER-END"
+MARKER_START = "# >>> N3RV-MARKER-START"
+MARKER_END = "# >>> N3RV-MARKER-END"
 
 
 class WriteResult(StrEnum):
@@ -91,7 +91,7 @@ def configure_git_hooks(root: Path) -> bool:
     # Create pre-push hook that delegates to .n3rv/githooks/
     pre_push = hooks_dir / "pre-push"
     pre_push.write_text(
-        "#!/bin/sh\n# NERV pre-push hook\nexec .n3rv/githooks/pre-push\n",
+        "#!/bin/sh\n# N3RV pre-push hook\nexec .n3rv/githooks/pre-push\n",
         encoding="utf-8",
     )
     pre_push.chmod(0o755)
@@ -102,7 +102,7 @@ def configure_git_hooks(root: Path) -> bool:
     wrapper = githooks_dir / "pre-push"
     if not wrapper.exists():
         wrapper.write_text(
-            "#!/usr/bin/env python3\n# NERV pre-push hook\n# Add your checks here\n",
+            "#!/usr/bin/env python3\n# N3RV pre-push hook\n# Add your checks here\n",
             encoding="utf-8",
         )
         wrapper.chmod(0o755)

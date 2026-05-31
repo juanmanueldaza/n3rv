@@ -1,1 +1,1 @@
-"""MCP server implementations for NERV."""
+"""MCP server implementations for N3RV."""

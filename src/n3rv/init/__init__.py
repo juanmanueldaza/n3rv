@@ -197,7 +197,7 @@ FILE_MANIFEST = [
         False,
         False,
     ),
-    # NERV primary agent (user-facing entry point)
+    # N3RV primary agent (user-facing entry point)
     ("opencode/agents/n3rv.md.j2", ".opencode/agents/n3rv.md", False, False),
 ]
 
