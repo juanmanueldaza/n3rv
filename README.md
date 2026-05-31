@@ -38,7 +38,8 @@ The base model is the Angel: raw, uncontained, and unpredictable. N3RV is the re
 Initialize the harness inside your local repository:
 
 ```bash
-uv tool install git+https://github.com/juanmanueldaza/n3rv.git
+pip install n3rv                          # from PyPI
+uv tool install git+https://github.com/juanmanueldaza/n3rv.git  # from source (latest)
 cd your-project
 n3rv init
 ```
@@ -128,6 +129,8 @@ N3RV is currently under active development, built in public. We are testing rest
 **Install from source after updates:**
 
 ```bash
+pip install --force-reinstall n3rv      # latest from PyPI
+# or from source:
 cd ~/Projects/n3rv && git pull && uv tool install --reinstall .
 ```
 
