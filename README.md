@@ -86,13 +86,13 @@ n3rv memory list|search|prune|stats     # MAGI memory operations
 
 ### MCP Servers (auto-configured in opencode.json)
 
- Server | Purpose |
---------|---------|
- `n3rv-memory` | ChromaDB + SQLite dual-store memory |
- `n3rv-hub` | A2A task delegation (JSON-RPC 2.0) |
- `github` | GitHub API via MCP |
- `context7` | Contextual search across codebase |
- `sequential-thinking` | Chain-of-thought reasoning |
+| Server | Purpose |
+|--------|---------|
+| `n3rv-memory` | ChromaDB + SQLite dual-store memory |
+| `n3rv-hub` | A2A task delegation (JSON-RPC 2.0) |
+| `github` | GitHub API via MCP |
+| `context7` | Contextual search across codebase |
+| `sequential-thinking` | Chain-of-thought reasoning |
 
 ---
 
