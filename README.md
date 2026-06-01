@@ -38,15 +38,16 @@ The base model is the Angel: raw, uncontained, and unpredictable. N3RV is the re
 Initialize the harness inside your local repository:
 
 ```bash
-uv tool install git+https://github.com/juanmanueldaza/n3rv.git
+pip install n3rv                          # from PyPI
+pip install git+https://github.com/juanmanueldaza/n3rv.git  # from source (latest)
 cd your-project
 n3rv init
 ```
 
-Or run without installing:
+Or install and run in one shot:
 
 ```bash
-uvx --from git+https://github.com/juanmanueldaza/n3rv.git n3rv init
+pip install git+https://github.com/juanmanueldaza/n3rv.git && n3rv init
 ```
 
 `n3rv init` provisions your workspace with:
@@ -125,10 +126,12 @@ Each phase is a dedicated skill + sub-agent. Phases write to persistent memory w
 
 N3RV is currently under active development, built in public. We are testing restraint stability and optimizing context-delivery pipelines.
 
-**Install from source after updates:**
+**Install or update:**
 
 ```bash
-cd ~/Projects/n3rv && git pull && uv tool install --reinstall .
+pip install --force-reinstall n3rv      # latest from PyPI
+# or from source:
+pip install --force-reinstall git+https://github.com/juanmanueldaza/n3rv.git
 ```
 
 ---
