@@ -15,6 +15,11 @@
 █████████████████████████████████████████████████████████
 ```
 
+![PyPI](https://img.shields.io/pypi/v/n3rv?style=flat-square)
+![PyPI Downloads](https://img.shields.io/pypi/dm/n3rv?style=flat-square)
+![License](https://img.shields.io/github/license/juanmanueldaza/n3rv?style=flat-square)
+![GitHub stars](https://img.shields.io/github/stars/juanmanueldaza/n3rv?style=flat-square)
+
 `n3rv` is an open-source engineering harness designed to contain, restrain, and orchestrate Large Language Models (LLMs). Instead of treating agents as independent chatbots, N3RV builds a rigid operational framework — handling tools, dual-store memory, and real-time project context injection. Integrates natively with opencode via MCP servers, agent skills, slash commands, and sub-agents.
 
 [Architecture](docs/ARCHITECTURE.md) • [SDD Workflow](docs/SDD-WORKFLOW.md) • [MCP Tools](docs/MCP-TOOLS.md) • [Deployment](docs/DEPLOYMENT.md) • [Evangelion](EVANGELION.md) • [Security](SECURITY.md) • [Contributing](CONTRIBUTING.md)
