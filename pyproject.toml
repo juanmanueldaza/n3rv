@@ -46,6 +46,7 @@ dependencies = [
 n3rverberage = "n3rverberage.cli:main"
 n3rverberage-memory = "n3rverberage.mcp.memory_server:main"
 n3rverberage-hub = "n3rverberage.mcp.hub_server:main"
+n3rverberage-code-graph = "n3rverberage.mcp.code_graph_server:main"
 
 [project.urls]
 Homepage = "https://github.com/reverberage/n3rverberage"
