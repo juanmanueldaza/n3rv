@@ -12,10 +12,20 @@ from n3rverberage.mcp.code_graph_store import CodeGraphStore
 
 logger = logging.getLogger("n3rverberage.mcp.code_graph")
 
-_SKIP_DIRS = frozenset({
-    "__pycache__", ".git", ".venv", "venv", ".mypy_cache",
-    ".ruff_cache", "node_modules", ".tox", ".eggs", "*.egg-info",
-})
+_SKIP_DIRS = frozenset(
+    {
+        "__pycache__",
+        ".git",
+        ".venv",
+        "venv",
+        ".mypy_cache",
+        ".ruff_cache",
+        "node_modules",
+        ".tox",
+        ".eggs",
+        "*.egg-info",
+    }
+)
 
 
 @dataclass
@@ -82,60 +92,68 @@ def _extract_symbols(tree: ast.Module, file_path: str) -> list[dict]:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             decorators = [d for d in node.decorator_list]
             kind = "decorated" if decorators else "function"
-            symbols.append({
-                "file_path": file_path,
-                "name": node.name,
-                "kind": kind,
-                "line": node.lineno,
-                "end_line": getattr(node, "end_lineno", None),
-                "parent": None,
-                "docstring": _get_docstring(node),
-                "args": _extract_args(node),
-            })
+            symbols.append(
+                {
+                    "file_path": file_path,
+                    "name": node.name,
+                    "kind": kind,
+                    "line": node.lineno,
+                    "end_line": getattr(node, "end_lineno", None),
+                    "parent": None,
+                    "docstring": _get_docstring(node),
+                    "args": _extract_args(node),
+                }
+            )
 
             # Methods inside classes — handled by walking ClassDef children
         elif isinstance(node, ast.ClassDef):
             decorators = [d for d in node.decorator_list]
             kind = "decorated" if decorators else "class"
-            symbols.append({
-                "file_path": file_path,
-                "name": node.name,
-                "kind": kind,
-                "line": node.lineno,
-                "end_line": getattr(node, "end_lineno", None),
-                "parent": None,
-                "docstring": _get_docstring(node),
-                "args": None,
-            })
+            symbols.append(
+                {
+                    "file_path": file_path,
+                    "name": node.name,
+                    "kind": kind,
+                    "line": node.lineno,
+                    "end_line": getattr(node, "end_lineno", None),
+                    "parent": None,
+                    "docstring": _get_docstring(node),
+                    "args": None,
+                }
+            )
 
             # Extract methods
             for item in ast.iter_child_nodes(node):
                 if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     item_decorators = [d for d in item.decorator_list]
                     method_kind = "decorated" if item_decorators else "method"
-                    symbols.append({
-                        "file_path": file_path,
-                        "name": item.name,
-                        "kind": method_kind,
-                        "line": item.lineno,
-                        "end_line": getattr(item, "end_lineno", None),
-                        "parent": node.name,
-                        "docstring": _get_docstring(item),
-                        "args": _extract_args(item),
-                    })
+                    symbols.append(
+                        {
+                            "file_path": file_path,
+                            "name": item.name,
+                            "kind": method_kind,
+                            "line": item.lineno,
+                            "end_line": getattr(item, "end_lineno", None),
+                            "parent": node.name,
+                            "docstring": _get_docstring(item),
+                            "args": _extract_args(item),
+                        }
+                    )
         elif isinstance(node, ast.Assign):
             for target in node.targets:
                 if isinstance(target, ast.Name):
-                    symbols.append({
-                        "file_path": file_path,
-                        "name": target.id,
-                        "kind": "variable",
-                        "line": node.lineno,
-                        "end_line": getattr(node, "end_lineno", None),
-                        "parent": None,
-                        "docstring": None,
-                        "args": None,
-                    })
+                    symbols.append(
+                        {
+                            "file_path": file_path,
+                            "name": target.id,
+                            "kind": "variable",
+                            "line": node.lineno,
+                            "end_line": getattr(node, "end_lineno", None),
+                            "parent": None,
+                            "docstring": None,
+                            "args": None,
+                        }
+                    )
 
     return symbols
 
@@ -147,21 +165,25 @@ def _extract_imports(tree: ast.Module, file_path: str) -> list[dict]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                imports.append({
-                    "file_path": file_path,
-                    "module": alias.name,
-                    "names": None,
-                    "is_from_import": False,
-                })
+                imports.append(
+                    {
+                        "file_path": file_path,
+                        "module": alias.name,
+                        "names": None,
+                        "is_from_import": False,
+                    }
+                )
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
             names = [alias.name for alias in node.names] if node.names else None
-            imports.append({
-                "file_path": file_path,
-                "module": module,
-                "names": names,
-                "is_from_import": True,
-            })
+            imports.append(
+                {
+                    "file_path": file_path,
+                    "module": module,
+                    "names": names,
+                    "is_from_import": True,
+                }
+            )
 
     return imports
 
@@ -180,12 +202,14 @@ def _extract_calls(tree: ast.Module, file_path: str) -> list[dict]:
                     context = ast.get_source_segment("", node) or ""
                 except Exception:
                     pass
-                calls.append({
-                    "file_path": file_path,
-                    "name": name,
-                    "line": node.lineno,
-                    "context": context.strip(),
-                })
+                calls.append(
+                    {
+                        "file_path": file_path,
+                        "name": name,
+                        "line": node.lineno,
+                        "context": context.strip(),
+                    }
+                )
 
     return calls
 
@@ -333,11 +357,13 @@ class CodeGraphService:
             imports_data = self.store.query_imports(current_file)
             for importer in imports_data.get("imported_by", []):
                 if importer not in visited:
-                    results.append({
-                        "file": importer,
-                        "reason": "direct_import" if depth == 0 else "transitive_import",
-                        "depth": depth,
-                    })
+                    results.append(
+                        {
+                            "file": importer,
+                            "reason": "direct_import" if depth == 0 else "transitive_import",
+                            "depth": depth,
+                        }
+                    )
                     _walk(importer, depth + 1)
 
         _walk(file_path, 0)

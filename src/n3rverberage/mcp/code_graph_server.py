@@ -42,9 +42,7 @@ def build_code_graph_server(project_root: Path | None = None):
         svc = CodeGraphService(store, root)
         return result_payload(svc.index())
 
-    @server.tool(
-        description="List symbol definitions (functions, classes, methods) in a file or across the project."
-    )
+    @server.tool(description="List symbol definitions (functions, classes, methods) in a file or across the project.")
     async def code_graph_symbols(
         project_path: str,
         file_path: str | None = None,

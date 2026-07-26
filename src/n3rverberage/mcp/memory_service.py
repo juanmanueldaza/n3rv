@@ -95,6 +95,7 @@ class MemoryService:
 
         # Generate origin_uuid for this save
         import uuid as uuid_mod
+
         origin_uuid = str(uuid_mod.uuid4())
 
         if agent_source is None:

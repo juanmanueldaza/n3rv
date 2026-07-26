@@ -198,10 +198,7 @@ class CodeGraphStore:
 
         where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
         cols = "file_path, name, kind, line, end_line, parent, docstring, args"
-        query = (
-            f"SELECT {cols} FROM code_graph_symbols{where}"
-            " ORDER BY file_path, line"
-        )
+        query = f"SELECT {cols} FROM code_graph_symbols{where} ORDER BY file_path, line"
 
         with self._conn() as conn:
             rows = conn.execute(query, params).fetchall()
