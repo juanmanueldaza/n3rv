@@ -146,3 +146,15 @@ class PruneResult(BaseModel):
     pruned: int
     scope: MemoryScope
     older_than_days: int
+
+
+class ConflictLogEntry(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    topic_key: str
+    winning_memory_id: str
+    losing_memory_id: str
+    losing_origin_uuid: str
+    losing_updated_at: str
+    created_at: str

@@ -218,6 +218,9 @@ class VectorStore:
             if "last_accessed_at" not in updated_metadata:
                 updated_metadata["last_accessed_at"] = str(updated_metadata["timestamp"])
                 changed = True
+            if "origin_uuid" not in updated_metadata:
+                updated_metadata["origin_uuid"] = "unknown"
+                changed = True
 
             if changed:
                 ids_to_update.append(item_id)

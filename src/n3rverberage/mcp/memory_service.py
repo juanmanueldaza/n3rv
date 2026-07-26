@@ -11,11 +11,13 @@ from collections import Counter
 from datetime import timedelta
 
 from n3rverberage.config import RuntimeSettings
+from n3rverberage.mcp.conflict_store import ConflictStore
 from n3rverberage.mcp.relation_store import RelationStore
 from n3rverberage.mcp.session_manager import SessionManager
 from n3rverberage.mcp.vector_store import VectorStore, _parse_timestamp
 from n3rverberage.models.memory import (
     ConflictCandidate,
+    ConflictLogEntry,
     ContextEntry,
     JudgeResult,
     MemoryScope,
@@ -56,6 +58,7 @@ class MemoryService:
         self._searches_since_write = 0
         self.vector_store = VectorStore(settings)
         self.relations = RelationStore(settings.paths.memory_dir / "relations.db")
+        self.conflicts = ConflictStore(settings.paths.memory_dir / "conflicts.db")
         self.session_manager = SessionManager(self.vector_store)
 
     def memory_save(
@@ -67,8 +70,15 @@ class MemoryService:
         topic_key: str | None = None,
         scope: str = "project",
         agent_source: str | None = None,
+        updated_at: str | None = None,
     ) -> dict:
-        """Persist a memory observation. Returns dict for test compat."""
+        """Persist a memory observation. Returns dict for test compat.
+
+        Parameters
+        ----------
+        updated_at : str | None
+            Optional ISO timestamp for LWW merge. If None, uses now().
+        """
         memory_type = MemoryType(type)
         memory_scope = MemoryScope(scope)
         self.vector_store.validate_content(content)
@@ -82,6 +92,10 @@ class MemoryService:
         original_timestamp = now.isoformat()
         original_last_accessed = now.isoformat()
         self._reset_search_nudge()
+
+        # Generate origin_uuid for this save
+        import uuid as uuid_mod
+        origin_uuid = str(uuid_mod.uuid4())
 
         if agent_source is None:
             from n3rverberage.mcp.shared import detect_agent_source
@@ -98,6 +112,7 @@ class MemoryService:
                 document_id = existing["ids"][0]
                 existing_meta = dict(existing["metadatas"][0])
                 if existing_meta.get("content_hash") == content_hash:
+                    # Same content hash → duplicate, just bump counts
                     existing_meta["duplicate_count"] = int(existing_meta.get("duplicate_count", 1)) + 1
                     existing_meta["last_seen_at"] = now.isoformat()
                     self.vector_store.update(ids=[document_id], metadatas=[existing_meta])
@@ -112,6 +127,36 @@ class MemoryService:
                         )
                     )
                 else:
+                    # Different content hash → LWW merge
+                    new_updated_at = updated_at or now.isoformat()
+                    existing_updated_at = str(existing_meta.get("updated_at", ""))
+
+                    if existing_updated_at and new_updated_at <= existing_updated_at:
+                        # Existing wins (LWW) → skip update
+                        logger.debug(
+                            "memory_save lww-merge-skip id=%s new_ts=%s existing_ts=%s",
+                            document_id,
+                            new_updated_at,
+                            existing_updated_at,
+                        )
+                        return _to_dict(
+                            SaveResult(
+                                id=document_id,
+                                topic_key=validated_topic_key,
+                                status="duplicate",
+                                timestamp=now,
+                                revision_count=int(existing_meta.get("revision_count", 1)),
+                            )
+                        )
+
+                    # New wins (LWW) → update and log conflict
+                    self.conflicts.log_conflict(
+                        topic_key=validated_topic_key,
+                        winning_memory_id=document_id,
+                        losing_memory_id=document_id,
+                        losing_origin_uuid=str(existing_meta.get("origin_uuid", "unknown")),
+                        losing_updated_at=existing_updated_at or now.isoformat(),
+                    )
                     status = "updated"
                     revision_count = int(existing_meta.get("revision_count", 1)) + 1
                     original_timestamp = str(existing_meta.get("timestamp", now.isoformat()))
@@ -151,8 +196,9 @@ class MemoryService:
             "duplicate_count": 1,
             "last_seen_at": now.isoformat(),
             "revision_count": revision_count,
-            "updated_at": now.isoformat(),
+            "updated_at": updated_at or now.isoformat(),
             "last_accessed_at": original_last_accessed,
+            "origin_uuid": origin_uuid,
         }
         self.vector_store.save(
             document_id=document_id,
@@ -485,6 +531,27 @@ class MemoryService:
                 older_than_days=older_than_days,
             )
         )
+
+    def get_conflicts(
+        self,
+        topic_key: str | None = None,
+        days: int = 7,
+    ) -> list[ConflictLogEntry]:
+        """Query conflict log with optional filters.
+
+        Parameters
+        ----------
+        topic_key : str | None
+            If provided, filter to conflicts for this topic_key.
+        days : int
+            Only return conflicts created within the last N days.
+
+        Returns
+        -------
+        list[ConflictLogEntry]
+            Matching conflict entries, newest first.
+        """
+        return self.conflicts.get_conflicts(topic_key=topic_key, days=days)
 
     # --- Private helpers ---
 

@@ -65,7 +65,7 @@ def build_memory_server(project_root: Path | None = None):
         include_personal: bool = False,
     ) -> dict:
         return result_payload(
-            service.search_memories(
+            service.memory_search(
                 query=query,
                 limit=limit,
                 type_filter=type_filter,
@@ -137,6 +137,29 @@ def build_memory_server(project_root: Path | None = None):
                     enforce_profile=True,
                 )
             )
+
+    @server.tool(description="Query conflict log for LWW merge decisions.")
+    async def memory_conflicts(
+        topic_key: str | None = None,
+        days: int = 7,
+    ) -> dict:
+        """Query conflict log with optional filters.
+
+        Parameters
+        ----------
+        topic_key : str | None
+            If provided, filter to conflicts for this topic_key.
+        days : int
+            Only return conflicts created within the last N days.
+
+        Returns
+        -------
+        dict
+            Dict with `conflicts` list of ConflictLogEntry dicts.
+        """
+        return result_payload(
+            {"conflicts": [c.model_dump() for c in service.get_conflicts(topic_key=topic_key, days=days)]}
+        )
 
     return server
 
