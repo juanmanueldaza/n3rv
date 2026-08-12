@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Invisible engineering infrastructure for opencode agents."
 readme = "README.md"
 license = { text = "GPL-2.0" }
-authors = [{ name = "Juan Manuel Daza", email = "juan@daza.ar" }]
+authors = [{ name = "Juan Manuel Daza", email = "juanmanueldaza@gmail.com" }]
 requires-python = ">=3.14"
 keywords = ["opencode", "agent", "infrastructure", "mcp", "memory", "hub"]
 classifiers = [
