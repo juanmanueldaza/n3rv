@@ -5,7 +5,7 @@ description = "Invisible engineering infrastructure for opencode agents — reve
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "Juan Manuel Daza", email = "juan@daza.ar" },
+    { name = "Juan Manuel Daza", email = "juanmanueldaza@gmail.com" },
     { name = "reverberage", email = "dev@reverberage.org" },
 ]
 requires-python = ">=3.11"
