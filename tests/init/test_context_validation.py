@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from n3rverberage.init.renderer import (
+from n3rv.init.renderer import (
     ContextValidationError,
     TemplateEngine,
     _load_schema,

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from n3rverberage.org import (
+from n3rv.org import (
     ORG_CONFIG_FILENAME,
     OrgConfig,
     OrgNotFoundError,
@@ -92,7 +92,7 @@ class TestOrgConfigYaml:
                 ),
             ],
         )
-        path = tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME
+        path = tmp_path / ".n3rv" / ORG_CONFIG_FILENAME
         config.to_yaml(path)
         assert path.exists()
 
@@ -138,9 +138,9 @@ class TestOrgConfigYaml:
 
 class TestResolveOrgRoot:
     def test_finds_config_in_current_dir(self, tmp_path: Path) -> None:
-        n3rverberage_dir = tmp_path / ".n3rverberage"
-        n3rverberage_dir.mkdir(parents=True)
-        config_path = n3rverberage_dir / ORG_CONFIG_FILENAME
+        n3rv_dir = tmp_path / ".n3rv"
+        n3rv_dir.mkdir(parents=True)
+        config_path = n3rv_dir / ORG_CONFIG_FILENAME
         config = OrgConfig(org_name="reverberage")
         config.to_yaml(config_path)
 
@@ -148,10 +148,10 @@ class TestResolveOrgRoot:
         assert root == tmp_path.resolve()
 
     def test_finds_config_in_parent_dir(self, tmp_path: Path) -> None:
-        n3rverberage_dir = tmp_path / ".n3rverberage"
-        n3rverberage_dir.mkdir(parents=True)
+        n3rv_dir = tmp_path / ".n3rv"
+        n3rv_dir.mkdir(parents=True)
         config = OrgConfig(org_name="reverberage")
-        config.to_yaml(n3rverberage_dir / ORG_CONFIG_FILENAME)
+        config.to_yaml(n3rv_dir / ORG_CONFIG_FILENAME)
 
         child = tmp_path / "deep" / "nested"
         child.mkdir(parents=True)
@@ -181,9 +181,9 @@ class TestDiscoverSatelliteCards:
 
     def test_satellite_with_a2a_config(self, tmp_path: Path) -> None:
         sat_path = tmp_path / "satellites" / "transcriber"
-        (sat_path / ".n3rverberage").mkdir(parents=True)
+        (sat_path / ".n3rv").mkdir(parents=True)
         a2a_config = {"project": "transcriber", "hub": {"host": "127.0.0.1", "port": 19821}}
-        (sat_path / ".n3rverberage" / "a2a-config.yaml").write_text(yaml.safe_dump(a2a_config), encoding="utf-8")
+        (sat_path / ".n3rv" / "a2a-config.yaml").write_text(yaml.safe_dump(a2a_config), encoding="utf-8")
 
         config = OrgConfig(
             projects=[
@@ -196,7 +196,7 @@ class TestDiscoverSatelliteCards:
         )
         cards = config.discover_satellite_cards(tmp_path)
         assert len(cards) == 1
-        assert cards[0].name == "n3rverberage-transcriber"
+        assert cards[0].name == "n3rv-transcriber"
 
     def test_satellite_missing_a2a_skipped(self, tmp_path: Path) -> None:
         sat_path = tmp_path / "satellites" / "missing"

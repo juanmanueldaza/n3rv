@@ -6,8 +6,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from n3rverberage.cli import app
-from n3rverberage.org import ORG_CONFIG_FILENAME, OrgConfig
+from n3rv.cli import app
+from n3rv.org import ORG_CONFIG_FILENAME, OrgConfig
 
 runner = CliRunner()
 
@@ -15,9 +15,9 @@ runner = CliRunner()
 def _make_a2a_config(sat_path: Path, name: str, port: int = 19821) -> None:
     import yaml
 
-    (sat_path / ".n3rverberage").mkdir(parents=True)
+    (sat_path / ".n3rv").mkdir(parents=True)
     a2a_config = {"project": name, "hub": {"host": "127.0.0.1", "port": port}}
-    (sat_path / ".n3rverberage" / "a2a-config.yaml").write_text(yaml.safe_dump(a2a_config), encoding="utf-8")
+    (sat_path / ".n3rv" / "a2a-config.yaml").write_text(yaml.safe_dump(a2a_config), encoding="utf-8")
 
 
 class TestFullOrgWorkflow:
@@ -27,12 +27,12 @@ class TestFullOrgWorkflow:
         # Step 1: org init
         result = runner.invoke(app, ["org", "init", "--root", str(tmp_path)])
         assert result.exit_code == 0
-        config_path = tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME
+        config_path = tmp_path / ".n3rv" / ORG_CONFIG_FILENAME
         assert config_path.exists()
         assert (tmp_path / ".opencode" / "shared" / "skills").is_dir()
 
         # Step 2: register satellites manually (avoids gh dependency)
-        from n3rverberage.org import OrgProject
+        from n3rv.org import OrgProject
 
         # Create satellite dirs with a2a-config.yaml
         sat1_path = tmp_path / "satellites" / "transcriber"
@@ -67,23 +67,23 @@ class TestFullOrgWorkflow:
         loaded = OrgConfig.from_yaml(config_path)
         assert len(loaded.projects) == 2
 
-        # Step 3: sync (dry-run to avoid needing n3rverberage init on fake dirs)
+        # Step 3: sync (dry-run to avoid needing n3rv init on fake dirs)
         result = runner.invoke(app, ["org", "sync", "--root", str(tmp_path), "--dry-run"])
         assert result.exit_code == 0
         assert "transcriber" in result.stdout
         assert "summarizer" in result.stdout
 
         # Step 4: verify agent card discovery
-        from n3rverberage.config import load_runtime_settings
+        from n3rv.config import load_runtime_settings
 
         settings = load_runtime_settings(tmp_path)
-        from n3rverberage.a2a.agent_cards import load_agent_cards
+        from n3rv.a2a.agent_cards import load_agent_cards
 
         cards = load_agent_cards(settings, org_config_path=config_path)
-        assert "n3rverberage-transcriber" in cards
-        assert "n3rverberage-summarizer" in cards
-        assert cards["n3rverberage-transcriber"].name == "n3rverberage-transcriber"
-        assert cards["n3rverberage-summarizer"].name == "n3rverberage-summarizer"
+        assert "n3rv-transcriber" in cards
+        assert "n3rv-summarizer" in cards
+        assert cards["n3rv-transcriber"].name == "n3rv-transcriber"
+        assert cards["n3rv-summarizer"].name == "n3rv-summarizer"
         # Infrastructure cards still present
         assert "hub" in cards
         assert "opencode" in cards
@@ -97,7 +97,7 @@ class TestFullOrgWorkflow:
             encoding="utf-8",
         )
 
-        from n3rverberage.init.registry import SkillRegistry, write_registry
+        from n3rv.init.registry import SkillRegistry, write_registry
 
         registry = SkillRegistry.scan(tmp_path, org_root=tmp_path)
         names = {e.name for e in registry.entries}

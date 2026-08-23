@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from n3rverberage.providers.base import ModelProvider
+from n3rv.providers.base import ModelProvider
 
 
 def test_abc_cannot_instantiate_directly() -> None:
@@ -44,7 +44,7 @@ def test_full_implementation_succeeds() -> None:
             return output_type()
 
         def complete_with_tools(self, messages, tools, **kwargs):
-            from n3rverberage.providers.models import ToolResult
+            from n3rv.providers.models import ToolResult
 
             return ToolResult(content="ok")
 
@@ -71,7 +71,7 @@ def test_constructor_defaults() -> None:
             return output_type()
 
         def complete_with_tools(self, messages, tools, **kwargs):
-            from n3rverberage.providers.models import ToolResult
+            from n3rv.providers.models import ToolResult
 
             return ToolResult(content="ok")
 

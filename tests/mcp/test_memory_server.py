@@ -5,14 +5,14 @@ from datetime import UTC, datetime
 
 import pytest
 
-from n3rverberage.mcp.memory_server import build_memory_server
-from n3rverberage.mcp.memory_service import MemoryService
-from n3rverberage.mcp.shared import detect_agent_source
-from n3rverberage.mcp.vector_store import VectorStore
+from n3rv.mcp.memory_server import build_memory_server
+from n3rv.mcp.memory_service import MemoryService
+from n3rv.mcp.shared import detect_agent_source
+from n3rv.mcp.vector_store import VectorStore
 
 
 def test_memory_save_and_recall(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
     service = MemoryService(runtime_settings)
 
     saved = service.memory_save(
@@ -131,7 +131,7 @@ def test_memory_delete_raises_for_unknown_id(runtime_settings) -> None:
 
 
 def test_memory_stats_groups_active_memories(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
     service = MemoryService(runtime_settings)
     service.memory_save(
         content="ADR: split memory and hub services.",
@@ -147,7 +147,7 @@ def test_memory_stats_groups_active_memories(runtime_settings, monkeypatch) -> N
         topic_key="build-config",
         scope="personal",
     )
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
     deleted = service.memory_save(
         content="Temporary debugging note.",
         title="Debug note",
@@ -327,7 +327,7 @@ def test_build_memory_server_enables_stateless_http(runtime_settings) -> None:
 
 
 def test_detect_agent_source_falls_back_to_env(monkeypatch) -> None:
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
 
     assert detect_agent_source() == "opencode"
 
@@ -600,7 +600,7 @@ def test_memory_prune_leaves_new_memories(runtime_settings) -> None:
 
 @pytest.mark.asyncio
 async def test_mcp_safe_profile_hides_delete_tool(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RVERBERAGE_MEMORY_PROFILE", "safe")
+    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "safe")
     server = build_memory_server(runtime_settings.paths.project_root)
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
@@ -609,7 +609,7 @@ async def test_mcp_safe_profile_hides_delete_tool(runtime_settings, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_mcp_full_profile_includes_delete_tool(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RVERBERAGE_MEMORY_PROFILE", "full")
+    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "full")
     server = build_memory_server(runtime_settings.paths.project_root)
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
@@ -730,7 +730,7 @@ def test_metadata_migration_adds_new_fields(runtime_settings) -> None:
 
 def test_memory_save_lww_newer_wins(runtime_settings, monkeypatch) -> None:
     """When new updated_at > existing, new wins and conflict is logged."""
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "test")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "test")
     service = MemoryService(runtime_settings)
 
     # Create initial memory
@@ -870,7 +870,7 @@ def test_memory_save_dedup_no_conflict(runtime_settings) -> None:
 
 def test_memory_save_lww_captures_losing_content(runtime_settings, monkeypatch) -> None:
     """When new wins LWW, losing content/title/type/agent_source are captured."""
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "sdd-explorer")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "sdd-explorer")
     service = MemoryService(runtime_settings)
 
     # Create initial memory (this will become the "losing" version)
@@ -883,7 +883,7 @@ def test_memory_save_lww_captures_losing_content(runtime_settings, monkeypatch) 
     )
 
     # Save with newer timestamp — this wins
-    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "sdd-speccer")
+    monkeypatch.setenv("N3RV_AGENT_SOURCE", "sdd-speccer")
     second = service.memory_save(
         content="We chose SQLite for simplicity.",
         title="Database decision",
@@ -957,7 +957,7 @@ def test_memory_save_dedup_no_content_capture(runtime_settings) -> None:
 @pytest.mark.asyncio
 async def test_mcp_memory_conflicts_tool(runtime_settings, monkeypatch) -> None:
     """The memory_conflicts MCP tool is registered and callable."""
-    monkeypatch.setenv("N3RVERBERAGE_MEMORY_PROFILE", "full")
+    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "full")
     server = build_memory_server(runtime_settings.paths.project_root)
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]

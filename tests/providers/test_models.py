@@ -7,7 +7,7 @@ import pickle
 import pytest
 from pydantic import ValidationError
 
-from n3rverberage.providers.models import (
+from n3rv.providers.models import (
     AllProvidersExhaustedError,
     ProviderError,
     QuotaExhaustedError,

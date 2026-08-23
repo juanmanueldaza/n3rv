@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from n3rverberage.providers.fallback import FallbackProvider
-from n3rverberage.providers.models import (
+from n3rv.providers.fallback import FallbackProvider
+from n3rv.providers.models import (
     AllProvidersExhaustedError,
     ProviderError,
     QuotaExhaustedError,

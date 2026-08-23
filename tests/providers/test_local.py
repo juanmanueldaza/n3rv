@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from conftest import make_mock_response
 
-from n3rverberage.providers.local import LocalProvider
+from n3rv.providers.local import LocalProvider
 
 
 @pytest.fixture

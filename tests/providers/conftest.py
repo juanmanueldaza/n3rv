@@ -1,4 +1,4 @@
-"""Shared fixtures for n3rverberage.providers tests."""
+"""Shared fixtures for n3rv.providers tests."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import httpx
 import pytest
 from openai import APIStatusError
 
-from n3rverberage.providers.models import QuotaExhaustedError, ToolCall, ToolResult
+from n3rv.providers.models import QuotaExhaustedError, ToolCall, ToolResult
 
 
 def make_mock_response(
@@ -115,7 +115,7 @@ def exhausted_judge_provider(mocker):
 @pytest.fixture
 def error_search_provider(mocker):
     """Returns a mock provider that raises a non-quota ProviderError on search."""
-    from n3rverberage.providers.models import ProviderError
+    from n3rv.providers.models import ProviderError
 
     provider = mocker.MagicMock(spec=["complete_with_tools", "complete_structured", "complete"])
     provider.complete_with_tools.side_effect = ProviderError(

@@ -1,0 +1,15 @@
+[Unit]
+Description=N3RVERBERAGE A2A Hub for n3rverberage
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ultravietnamita/Projects/n3rv
+ExecStart=/home/ultravietnamita/Projects/n3rv/.venv/bin/n3rverberage hub start
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/ultravietnamita/Projects/n3rv/.n3rverberage/logs/hub.log
+StandardError=append:/home/ultravietnamita/Projects/n3rv/.n3rverberage/logs/hub.log
+
+[Install]
+WantedBy=default.target

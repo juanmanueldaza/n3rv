@@ -67,9 +67,9 @@ jobs:
           pip install -e ".[dev]"
           pip install pytest-cov
       
-      - name: Initialize n3rverberage
+      - name: Initialize n3rv
         run: |
-          n3rverberage init
+          n3rv init
       
       - name: Run tests with pytest
         run: |

@@ -5,8 +5,8 @@ __pycache__/
 .venv/
 dist/
 
-# N3RVERBERAGE — NEVER COMMIT (template-controlled)
-.n3rverberage/
+# N3RV — NEVER COMMIT (template-controlled)
+.n3rv/
 .opencode/
 .githooks/
 AGENTS.md

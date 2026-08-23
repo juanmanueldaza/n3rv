@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from n3rverberage.providers.tts import (
+from n3rv.providers.tts import (
     TTSProvider,
     TTSProviderError,
     TTSQuotaExhaustedError,
@@ -99,7 +99,7 @@ class TestConstructor:
     def test_env_var_voice(self) -> None:
         with patch.dict(
             "os.environ",
-            {"DASHSCOPE_API_KEY": "sk-test", "N3RVERBERAGE_TTS_VOICE": "Serena"},
+            {"DASHSCOPE_API_KEY": "sk-test", "N3RV_TTS_VOICE": "Serena"},
         ):
             p = TTSProvider()
         assert p.voice == "Serena"
@@ -109,7 +109,7 @@ class TestConstructor:
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_TTS_BASE_URL": "https://custom/api/v1",
+                "N3RV_TTS_BASE_URL": "https://custom/api/v1",
             },
         ):
             p = TTSProvider()
@@ -120,7 +120,7 @@ class TestConstructor:
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_BASE_URL": "https://general/api/v1",
+                "N3RV_BASE_URL": "https://general/api/v1",
             },
         ):
             p = TTSProvider()
@@ -131,8 +131,8 @@ class TestConstructor:
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_TTS_BASE_URL": "https://tts/api/v1",
-                "N3RVERBERAGE_BASE_URL": "https://general/api/v1",
+                "N3RV_TTS_BASE_URL": "https://tts/api/v1",
+                "N3RV_BASE_URL": "https://general/api/v1",
             },
         ):
             p = TTSProvider()

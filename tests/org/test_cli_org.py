@@ -1,4 +1,4 @@
-"""Tests for n3rverberage org CLI scaffold."""
+"""Tests for n3rv org CLI scaffold."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 from typer.testing import CliRunner
 
-from n3rverberage.cli import app
-from n3rverberage.org import ORG_CONFIG_FILENAME, OrgConfig
+from n3rv.cli import app
+from n3rv.org import ORG_CONFIG_FILENAME, OrgConfig
 
 
 def _strip_ansi(text: str) -> str:
@@ -65,7 +65,7 @@ class TestOrgInitCli:
     def test_init_creates_config(self, tmp_path: Path) -> None:
         result = runner.invoke(app, ["org", "init", "--root", str(tmp_path)])
         assert result.exit_code == 0
-        config_path = tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME
+        config_path = tmp_path / ".n3rv" / ORG_CONFIG_FILENAME
         assert config_path.exists()
         assert "Org initialized" in result.stdout
 
@@ -89,7 +89,7 @@ class TestOrgInitCli:
 
     def test_init_custom_org_name(self, tmp_path: Path) -> None:
         runner.invoke(app, ["org", "init", "--root", str(tmp_path), "--org-name", "myorg"])
-        config = OrgConfig.from_yaml(tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME)
+        config = OrgConfig.from_yaml(tmp_path / ".n3rv" / ORG_CONFIG_FILENAME)
         assert config.org_name == "myorg"
 
 
@@ -100,13 +100,13 @@ class TestOrgAddSatelliteCli:
         assert "org init" in result.stdout.lower()
 
     def test_errors_on_duplicate_name(self, tmp_path: Path) -> None:
-        from n3rverberage.org import OrgProject
+        from n3rv.org import OrgProject
 
         # Init org and pre-register a satellite
         runner.invoke(app, ["org", "init", "--root", str(tmp_path)])
-        config = OrgConfig.from_yaml(tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME)
+        config = OrgConfig.from_yaml(tmp_path / ".n3rv" / ORG_CONFIG_FILENAME)
         config.projects.append(OrgProject(name="test-sat", path=Path("test-sat"), type="satellite"))
-        config.to_yaml(tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME)
+        config.to_yaml(tmp_path / ".n3rv" / ORG_CONFIG_FILENAME)
 
         result = runner.invoke(
             app,
@@ -141,13 +141,13 @@ class TestOrgSyncCli:
     def test_dry_run_with_satellite(self, tmp_path: Path) -> None:
         runner.invoke(app, ["org", "init", "--root", str(tmp_path)])
         # Manually add a satellite entry to config
-        config = OrgConfig.from_yaml(tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME)
-        from n3rverberage.org import OrgProject
+        config = OrgConfig.from_yaml(tmp_path / ".n3rv" / ORG_CONFIG_FILENAME)
+        from n3rv.org import OrgProject
 
         sat_path = tmp_path / "satellites" / "test-sat"
         sat_path.mkdir(parents=True)
         config.projects.append(OrgProject(name="test-sat", path=Path("satellites/test-sat"), type="satellite"))
-        config.to_yaml(tmp_path / ".n3rverberage" / ORG_CONFIG_FILENAME)
+        config.to_yaml(tmp_path / ".n3rv" / ORG_CONFIG_FILENAME)
 
         result = runner.invoke(app, ["org", "sync", "--root", str(tmp_path), "--dry-run"])
         assert result.exit_code == 0

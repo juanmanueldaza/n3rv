@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 import pytest
 
-from n3rverberage.providers.base import ModelProvider
-from n3rverberage.providers.factory import get_provider, list_providers
-from n3rverberage.providers.fallback import FallbackProvider
+from n3rv.providers.base import ModelProvider
+from n3rv.providers.factory import get_provider, list_providers
+from n3rv.providers.fallback import FallbackProvider
 
 
 class TestListProviders:
@@ -34,7 +34,7 @@ class TestGetProvider:
     def test_env_var_default(self) -> None:
         with (
             patch("openai.OpenAI"),
-            patch.dict("os.environ", {"N3RVERBERAGE_PROVIDER": "openai", "OPENAI_API_KEY": "k"}),
+            patch.dict("os.environ", {"N3RV_PROVIDER": "openai", "OPENAI_API_KEY": "k"}),
         ):
             p = get_provider()
             assert p.model == "gpt-4"
@@ -42,7 +42,7 @@ class TestGetProvider:
     def test_explicit_name(self) -> None:
         with (
             patch("openai.OpenAI"),
-            patch.dict("os.environ", {"N3RVERBERAGE_PROVIDER": "openai", "DASHSCOPE_API_KEY": "k"}),
+            patch.dict("os.environ", {"N3RV_PROVIDER": "openai", "DASHSCOPE_API_KEY": "k"}),
         ):
             p = get_provider("qwen")
             assert isinstance(p, ModelProvider)
@@ -90,7 +90,7 @@ class TestGetProviderFallback:
             patch.dict(
                 "os.environ",
                 {
-                    "N3RVERBERAGE_FALLBACK_PROVIDERS": "qwen,local",
+                    "N3RV_FALLBACK_PROVIDERS": "qwen,local",
                     "DASHSCOPE_API_KEY": "k",
                 },
             ),
@@ -100,7 +100,7 @@ class TestGetProviderFallback:
 
     def test_fallback_env_missing(self) -> None:
         with patch.dict("os.environ", clear=True):
-            with pytest.raises(ValueError, match="N3RVERBERAGE_FALLBACK_PROVIDERS"):
+            with pytest.raises(ValueError, match="N3RV_FALLBACK_PROVIDERS"):
                 get_provider("fallback")
 
     def test_fallback_env_mixed_model_overrides(self) -> None:
@@ -109,7 +109,7 @@ class TestGetProviderFallback:
             patch.dict(
                 "os.environ",
                 {
-                    "N3RVERBERAGE_FALLBACK_PROVIDERS": "qwen:model-a,qwen:model-b",
+                    "N3RV_FALLBACK_PROVIDERS": "qwen:model-a,qwen:model-b",
                     "DASHSCOPE_API_KEY": "k",
                 },
             ),
@@ -125,7 +125,7 @@ class TestGetProviderFallback:
             patch.dict(
                 "os.environ",
                 {
-                    "N3RVERBERAGE_FALLBACK_PROVIDERS": "qwen",
+                    "N3RV_FALLBACK_PROVIDERS": "qwen",
                     "DASHSCOPE_API_KEY": "k",
                 },
             ),

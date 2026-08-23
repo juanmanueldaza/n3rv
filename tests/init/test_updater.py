@@ -6,7 +6,7 @@ and update strategies.
 
 from pathlib import Path
 
-from n3rverberage.init.update import (
+from n3rv.init.update import (
     FILE_UPDATE_MANIFEST,
     UpdateEntry,
     UpdateResult,
@@ -15,7 +15,7 @@ from n3rverberage.init.update import (
     _handle_create_if_missing,
     deep_merge_json,
 )
-from n3rverberage.init.writer import MARKER_END, MARKER_START, validate_markers
+from n3rv.init.writer import MARKER_END, MARKER_START, validate_markers
 
 
 def test_validate_markers_clean_content_returns_empty():
@@ -101,10 +101,10 @@ def test_manifest_overwrite_files():
     """Test overwrite files include infrastructure files."""
     ow_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.OVERWRITE]
     paths = {e.output_path for e in ow_files}
-    assert ".n3rverberage/a2a-config.yaml" in paths
-    assert ".opencode/plugins/n3rverberage-lifecycle.js" in paths
-    assert ".opencode/plugins/n3rverberage-shell-env.js" in paths
-    assert ".opencode/tools/n3rverberage-stats.ts" in paths
+    assert ".n3rv/a2a-config.yaml" in paths
+    assert ".opencode/plugins/n3rv-lifecycle.js" in paths
+    assert ".opencode/plugins/n3rv-shell-env.js" in paths
+    assert ".opencode/tools/n3rv-stats.ts" in paths
     assert len(ow_files) == 6
 
 

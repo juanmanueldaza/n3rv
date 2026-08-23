@@ -1,7 +1,7 @@
 [project]
-name = "n3rverberage"
+name = "n3rv"
 version = "0.1.1"
-description = "Invisible engineering infrastructure for opencode agents — reverberage fork."
+description = "Invisible engineering infrastructure for opencode agents."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [
@@ -9,7 +9,7 @@ authors = [
     { name = "reverberage", email = "dev@reverberage.org" },
 ]
 requires-python = ">=3.11"
-keywords = ["opencode", "agent", "infrastructure", "mcp", "memory", "hub", "reverberage"]
+keywords = ["opencode", "agent", "infrastructure", "mcp", "memory", "hub"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -26,7 +26,7 @@ dependencies = [
     "aiohttp>=3.13.5",
     # CVE-2026-45829 (PYSEC-2026-311): pre-auth RCE in ChromaDB HTTP server
     # via /api/v2/tenants/{tenant}/databases/{db}/collections with
-    # trust_remote_code=true. NOT exploitable here: n3rverberage uses
+    # trust_remote_code=true. NOT exploitable here: n3rv uses
     # PersistentClient (local on-disk) exclusively — no HTTP server, no
     # trust_remote_code. Bump when a fixed release ships (none as of 1.5.9).
     "chromadb>=1.5.9",
@@ -43,23 +43,23 @@ dependencies = [
 ]
 
 [project.scripts]
-n3rverberage = "n3rverberage.cli:main"
-n3rverberage-memory = "n3rverberage.mcp.memory_server:main"
-n3rverberage-hub = "n3rverberage.mcp.hub_server:main"
-n3rverberage-code-graph = "n3rverberage.mcp.code_graph_server:main"
+n3rv = "n3rv.cli:main"
+n3rv-memory = "n3rv.mcp.memory_server:main"
+n3rv-hub = "n3rv.mcp.hub_server:main"
+n3rv-code-graph = "n3rv.mcp.code_graph_server:main"
 
 [project.urls]
-Homepage = "https://github.com/reverberage/n3rverberage"
-Repository = "https://github.com/reverberage/n3rverberage"
-"Bug Tracker" = "https://github.com/reverberage/n3rverberage/issues"
-"Changelog" = "https://github.com/reverberage/n3rverberage/releases"
+Homepage = "https://n3rv.daza.ar"
+Repository = "https://github.com/juanmanueldaza/n3rv"
+"Bug Tracker" = "https://github.com/juanmanueldaza/n3rv/issues"
+"Changelog" = "https://github.com/juanmanueldaza/n3rv/releases"
 
 [build-system]
 requires = ["hatchling>=1.18.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/n3rverberage"]
+packages = ["src/n3rv"]
 
 [tool.hatch.build.targets.sdist]
 include = ["/src"]

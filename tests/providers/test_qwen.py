@@ -8,8 +8,8 @@ import pytest
 from conftest import make_429_error, make_mock_response
 from pydantic import BaseModel
 
-from n3rverberage.providers.models import ProviderError, QuotaExhaustedError
-from n3rverberage.providers.qwen import QwenProvider, _is_free_tier_exhausted
+from n3rv.providers.models import ProviderError, QuotaExhaustedError
+from n3rv.providers.qwen import QwenProvider, _is_free_tier_exhausted
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ class TestConstructor:
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_QWEN_BASE_URL": "https://workspace.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+                "N3RV_QWEN_BASE_URL": "https://workspace.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
             },
         ):
             p = QwenProvider()
@@ -60,7 +60,7 @@ class TestConstructor:
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_QWEN_BASE_URL": "https://env-override/v1",
+                "N3RV_QWEN_BASE_URL": "https://env-override/v1",
             },
         ):
             p = QwenProvider(base_url="https://explicit/v1")

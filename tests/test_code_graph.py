@@ -5,8 +5,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
-from n3rverberage.mcp.code_graph_service import CodeGraphService
-from n3rverberage.mcp.code_graph_store import CodeGraphStore  # noqa: I001
+from n3rv.mcp.code_graph_service import CodeGraphService
+from n3rv.mcp.code_graph_store import CodeGraphStore  # noqa: I001
 
 # ── Helpers ────────────────────────────────────────────────────────
 
@@ -295,14 +295,14 @@ def test_syntax_error_handling(tmp_path: Path) -> None:
 
 
 def test_server_builds() -> None:
-    from n3rverberage.mcp.code_graph_server import build_code_graph_server
+    from n3rv.mcp.code_graph_server import build_code_graph_server
 
     server = build_code_graph_server()
     assert server is not None
 
 
 def test_entry_point_imports() -> None:
-    from n3rverberage.mcp.code_graph_server import (
+    from n3rv.mcp.code_graph_server import (
         build_code_graph_server,
         main,
         run_code_graph_server,

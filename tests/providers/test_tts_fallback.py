@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from n3rverberage.providers.models import AllTTSProvidersExhaustedError
-from n3rverberage.providers.tts import TTSProvider, TTSProviderError
-from n3rverberage.providers.tts_fallback import TTSFallbackProvider
+from n3rv.providers.models import AllTTSProvidersExhaustedError
+from n3rv.providers.tts import TTSProvider, TTSProviderError
+from n3rv.providers.tts_fallback import TTSFallbackProvider
 
 _AUDIO_BYTES = b"\x00\x01\x02mock_audio_data"
 
@@ -198,13 +198,13 @@ class TestSynthesizeFallback:
 class TestFactoryIntegration:
     def test_fallback_from_env(self) -> None:
         """get_tts_provider returns TTSFallbackProvider when env is set."""
-        from n3rverberage.providers.factory import get_tts_provider
+        from n3rv.providers.factory import get_tts_provider
 
         with patch.dict(
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_TTS_FALLBACK_MODELS": "qwen3-tts-flash,qwen3-tts-instruct-flash",
+                "N3RV_TTS_FALLBACK_MODELS": "qwen3-tts-flash,qwen3-tts-instruct-flash",
             },
         ):
             provider = get_tts_provider()
@@ -214,7 +214,7 @@ class TestFactoryIntegration:
 
     def test_no_fallback_env_returns_single(self) -> None:
         """get_tts_provider returns single TTSProvider when no fallback env."""
-        from n3rverberage.providers.factory import get_tts_provider
+        from n3rv.providers.factory import get_tts_provider
 
         with patch.dict(
             "os.environ",
@@ -229,13 +229,13 @@ class TestFactoryIntegration:
 
     def test_fallback_empty_env_raises(self) -> None:
         """Empty fallback env raises ValueError."""
-        from n3rverberage.providers.factory import get_tts_provider
+        from n3rv.providers.factory import get_tts_provider
 
         with patch.dict(
             "os.environ",
             {
                 "DASHSCOPE_API_KEY": "sk-test",
-                "N3RVERBERAGE_TTS_FALLBACK_MODELS": "",  # empty string
+                "N3RV_TTS_FALLBACK_MODELS": "",  # empty string
             },
         ):
             # Empty string means no fallback → returns single TTSProvider

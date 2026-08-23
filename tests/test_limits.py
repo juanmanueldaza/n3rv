@@ -1,4 +1,4 @@
-"""Tests for n3rverberage.limits — input validation functions."""
+"""Tests for n3rv.limits — input validation functions."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from n3rverberage.limits import (
+from n3rv.limits import (
     InputValidationError,
     estimate_tokens,
     validate_audio_duration,
@@ -199,7 +199,7 @@ class TestValidateAudioDuration:
 
     def test_imports_and_exists(self) -> None:
         """AC-4: validate_audio_duration exists and importable."""
-        from n3rverberage.limits import validate_audio_duration
+        from n3rv.limits import validate_audio_duration
 
         assert callable(validate_audio_duration)
 
@@ -210,11 +210,11 @@ class TestValidateAudioDuration:
 
         # Mock _get_audio_duration to return 600s (10 min)
         mocker.patch(
-            "n3rverberage.limits._ffprobe_available",
+            "n3rv.limits._ffprobe_available",
             return_value=True,
         )
         mocker.patch(
-            "n3rverberage.limits._get_audio_duration",
+            "n3rv.limits._get_audio_duration",
             return_value=600.0,
         )
 
@@ -227,11 +227,11 @@ class TestValidateAudioDuration:
         audio_file.write_bytes(b"\x00" * 1000)
 
         mocker.patch(
-            "n3rverberage.limits._ffprobe_available",
+            "n3rv.limits._ffprobe_available",
             return_value=True,
         )
         mocker.patch(
-            "n3rverberage.limits._get_audio_duration",
+            "n3rv.limits._get_audio_duration",
             return_value=120.0,
         )
 
@@ -248,7 +248,7 @@ class TestValidateAudioDuration:
         audio_file.write_bytes(b"\x00" * 1000)
 
         mocker.patch(
-            "n3rverberage.limits._ffprobe_available",
+            "n3rv.limits._ffprobe_available",
             return_value=False,
         )
 
@@ -261,11 +261,11 @@ class TestValidateAudioDuration:
         audio_file.write_bytes(b"\x00" * 1000)
 
         mocker.patch(
-            "n3rverberage.limits._ffprobe_available",
+            "n3rv.limits._ffprobe_available",
             return_value=True,
         )
         mocker.patch(
-            "n3rverberage.limits._get_audio_duration",
+            "n3rv.limits._get_audio_duration",
             return_value=600.0,
         )
 
@@ -277,7 +277,7 @@ class TestValidateAudioDuration:
 
     def test_model_aware_limits(self) -> None:
         """AC-6: Duration limits per model are correct."""
-        from n3rverberage.limits import _AUDIO_DURATION_LIMITS
+        from n3rv.limits import _AUDIO_DURATION_LIMITS
 
         assert _AUDIO_DURATION_LIMITS["qwen3-asr-flash"] == 300
         assert _AUDIO_DURATION_LIMITS["qwen3.5-omni-plus"] == 10800
@@ -333,7 +333,7 @@ class TestBase64AudioLimits:
 
 # ---------------------------------------------------------------------------
 # AC-22: No new hard dependencies
-# AC-24: limits.py is importable without n3rverberage (uses only pathlib + json + subprocess)
+# AC-24: limits.py is importable without n3rv (uses only pathlib + json + subprocess)
 # ---------------------------------------------------------------------------
 
 
@@ -343,7 +343,7 @@ class TestModuleStructure:
         import ast
         from pathlib import Path
 
-        limits_path = Path(__file__).parent.parent / "src" / "n3rverberage" / "limits.py"
+        limits_path = Path(__file__).parent.parent / "src" / "n3rv" / "limits.py"
         tree = ast.parse(limits_path.read_text())
         for node in ast.walk(tree):
             if isinstance(node, (ast.Import, ast.ImportFrom)):

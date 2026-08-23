@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from conftest import make_mock_response
 
-from n3rverberage.providers.models import ProviderError
-from n3rverberage.providers.openai import OpenAIProvider
+from n3rv.providers.models import ProviderError
+from n3rv.providers.openai import OpenAIProvider
 
 
 @pytest.fixture

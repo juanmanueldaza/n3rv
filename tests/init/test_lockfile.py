@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from n3rverberage.init.lockfile import (
+from n3rv.init.lockfile import (
     LOCKFILE_NAME,
     LOCKFILE_VERSION,
     _sha256,
@@ -53,8 +53,8 @@ def test_sha256_is_hex_string(tmp_path: Path):
 
 
 def test_lockfile_path(tmp_path: Path):
-    """lockfile_path returns path under .n3rverberage/."""
-    assert lockfile_path(tmp_path) == tmp_path / ".n3rverberage" / LOCKFILE_NAME
+    """lockfile_path returns path under .n3rv/."""
+    assert lockfile_path(tmp_path) == tmp_path / ".n3rv" / LOCKFILE_NAME
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +99,7 @@ def test_save_and_load_round_trip(tmp_path: Path):
 
 
 def test_save_creates_directory(tmp_path: Path):
-    """save_lockfile creates .n3rverberage/ directory if missing."""
+    """save_lockfile creates .n3rv/ directory if missing."""
     save_lockfile(tmp_path, {})
     assert lockfile_path(tmp_path).is_file()
 

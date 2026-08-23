@@ -1,10 +1,10 @@
 # MCP Tools Reference
 
-N3RVERBERAGE exposes two MCP servers with a total of 17 tools for agent integration.
+N3RV exposes two MCP servers with a total of 17 tools for agent integration.
 
-## Memory Server (`n3rverberage-memory`)
+## Memory Server (`n3rv-memory`)
 
-Exposed by `src/n3rverberage/mcp/memory_server.py`. Provides persistent semantic memory backed by ChromaDB + SQLite.
+Exposed by `src/n3rv/mcp/memory_server.py`. Provides persistent semantic memory backed by ChromaDB + SQLite.
 
 ### `memory_save`
 
@@ -97,7 +97,7 @@ Returns: `SessionStartResult` with `session_id`, `started_at`, `context` list.
 
 ### `memory_delete`
 
-Delete a stored memory by ID. Available only when `N3RVERBERAGE_MEMORY_PROFILE != "safe"`.
+Delete a stored memory by ID. Available only when `N3RV_MEMORY_PROFILE != "safe"`.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -158,9 +158,9 @@ Returns: `PruneResult` with `pruned` count, `scope`, `older_than_days`.
 
 ---
 
-## Hub Server (`n3rverberage-hub`)
+## Hub Server (`n3rv-hub`)
 
-Exposed by `src/n3rverberage/mcp/hub_server.py`. Provides A2A task delegation via the local hub.
+Exposed by `src/n3rv/mcp/hub_server.py`. Provides A2A task delegation via the local hub.
 
 ### `delegate_task`
 
@@ -182,7 +182,7 @@ List tasks assigned to an agent that are not yet completed.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `agent_id` | string | No | Agent ID (defaults to `N3RVERBERAGE_AGENT_SOURCE`) |
+| `agent_id` | string | No | Agent ID (defaults to `N3RV_AGENT_SOURCE`) |
 
 Returns: List of task objects.
 
@@ -194,7 +194,7 @@ Check pending tasks assigned to the current agent.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `agent_id` | string | No | Agent ID (defaults to `N3RVERBERAGE_AGENT_SOURCE`) |
+| `agent_id` | string | No | Agent ID (defaults to `N3RV_AGENT_SOURCE`) |
 
 Returns: List of task objects.
 
@@ -228,7 +228,7 @@ Returns: Task object with `id`, `status`, `assigned_agent`, `metadata`.
 
 ## Task States
 
-Defined in `src/n3rverberage/models/a2a.py:TaskState`:
+Defined in `src/n3rv/models/a2a.py:TaskState`:
 
 | State | Value | Meaning |
 |-------|-------|---------|

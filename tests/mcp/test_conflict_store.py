@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from n3rverberage.mcp.conflict_store import ConflictStore
-from n3rverberage.models.memory import ConflictLogEntry
+from n3rv.mcp.conflict_store import ConflictStore
+from n3rv.models.memory import ConflictLogEntry
 
 
 @pytest.fixture

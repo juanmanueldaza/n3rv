@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from n3rverberage.init.registry import (
+from n3rv.init.registry import (
     SkillEntry,
     SkillRegistry,
     _parse_frontmatter,
@@ -294,7 +294,7 @@ def test_write_registry_creates_file(tmp_path: Path):
     out = write_registry(tmp_path)
     assert out.exists()
     assert out.name == "skill-registry.md"
-    assert out.parent.name == ".n3rverberage"
+    assert out.parent.name == ".n3rv"
     content = out.read_text()
     assert "test-skill" in content
 

@@ -1,4 +1,4 @@
-# Contributing to reverberage
+# Contributing to n3rv
 
 Thank you for your interest in contributing to reverberage! This document provides guidelines for contributing to this project.
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from n3rverberage.init.renderer import TemplateEngine, TemplateRenderError
+from n3rv.init.renderer import TemplateEngine, TemplateRenderError
 
 
 @pytest.fixture
@@ -110,7 +110,7 @@ def test_shared_templates_dir_default_is_none(templates_dir: Path):
 def test_context_with_project_context(templates_dir: Path):
     """Test rendering with ProjectContext-like dict."""
     (templates_dir / "full.txt.j2").write_text(
-        "Project: {{ project_name }}\nStack: {{ stack }}\nVersion: {{ n3rverberage_version }}"
+        "Project: {{ project_name }}\nStack: {{ stack }}\nVersion: {{ n3rv_version }}"
     )
 
     engine = TemplateEngine(templates_dir)
@@ -119,7 +119,7 @@ def test_context_with_project_context(templates_dir: Path):
         {
             "project_name": "myapp",
             "stack": "python",
-            "n3rverberage_version": "0.1.0",
+            "n3rv_version": "0.1.0",
         },
     )
 
