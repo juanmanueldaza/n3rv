@@ -178,3 +178,108 @@ class TestConflictLogEntry:
         assert "losing_origin_uuid" in dump
         assert "losing_updated_at" in dump
         assert "created_at" in dump
+
+    def test_conflict_log_entry_optional_fields_default_none(self) -> None:
+        entry = ConflictLogEntry(
+            id="test-id-003",
+            topic_key="optional-test",
+            winning_memory_id="mem-001",
+            losing_memory_id="mem-002",
+            losing_origin_uuid="uuid-002",
+            losing_updated_at="2025-01-01T00:00:00+00:00",
+            created_at="2025-01-02T00:00:00+00:00",
+        )
+        assert entry.losing_content is None
+        assert entry.losing_title is None
+        assert entry.losing_type is None
+        assert entry.losing_agent_source is None
+
+    def test_conflict_log_entry_accepts_content_fields(self) -> None:
+        entry = ConflictLogEntry(
+            id="test-id-004",
+            topic_key="content-test",
+            winning_memory_id="mem-001",
+            losing_memory_id="mem-002",
+            losing_origin_uuid="uuid-002",
+            losing_updated_at="2025-01-01T00:00:00+00:00",
+            created_at="2025-01-02T00:00:00+00:00",
+            losing_content="the losing content",
+            losing_title="Losing Title",
+            losing_type="decision",
+            losing_agent_source="agent-explorer",
+        )
+        assert entry.losing_content == "the losing content"
+        assert entry.losing_title == "Losing Title"
+        assert entry.losing_type == "decision"
+        assert entry.losing_agent_source == "agent-explorer"
+
+
+class TestConflictContentArchival:
+    """Tests for losing content archival in conflict log."""
+
+    def test_log_conflict_with_content(self, conflict_store: ConflictStore) -> None:
+        conflict_store.log_conflict(
+            topic_key="auth-strategy",
+            winning_memory_id="mem-001",
+            losing_memory_id="mem-002",
+            losing_origin_uuid="uuid-002",
+            losing_updated_at="2025-01-01T00:00:00+00:00",
+            losing_content="We chose JWT with refresh tokens.",
+            losing_title="Auth strategy",
+            losing_type="decision",
+            losing_agent_source="sdd-explorer",
+        )
+        conflicts = conflict_store.get_conflicts(topic_key="auth-strategy")
+        assert len(conflicts) == 1
+        assert conflicts[0].losing_content == "We chose JWT with refresh tokens."
+        assert conflicts[0].losing_title == "Auth strategy"
+        assert conflicts[0].losing_type == "decision"
+        assert conflicts[0].losing_agent_source == "sdd-explorer"
+
+    def test_log_conflict_without_content(self, conflict_store: ConflictStore) -> None:
+        conflict_store.log_conflict(
+            topic_key="db-choice",
+            winning_memory_id="mem-003",
+            losing_memory_id="mem-004",
+            losing_origin_uuid="uuid-004",
+            losing_updated_at="2025-06-15T10:30:00+00:00",
+        )
+        conflicts = conflict_store.get_conflicts(topic_key="db-choice")
+        assert len(conflicts) == 1
+        assert conflicts[0].losing_content is None
+        assert conflicts[0].losing_title is None
+        assert conflicts[0].losing_type is None
+        assert conflicts[0].losing_agent_source is None
+
+    def test_schema_migration_existing_db(self, tmp_path) -> None:
+        """Create DB with old schema, open with new code, verify columns added."""
+        import sqlite3
+        from datetime import UTC, datetime
+
+        db_path = tmp_path / "migration_test.db"
+        now_iso = datetime.now(UTC).isoformat()
+        # Create DB with old schema (7 columns only)
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""
+            CREATE TABLE memory_conflict_log (
+                id TEXT PRIMARY KEY,
+                topic_key TEXT NOT NULL,
+                winning_memory_id TEXT NOT NULL,
+                losing_memory_id TEXT NOT NULL,
+                losing_origin_uuid TEXT NOT NULL,
+                losing_updated_at TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute(
+            "INSERT INTO memory_conflict_log VALUES (?, ?, ?, ?, ?, ?, ?)",
+            ("old-id", "old-topic", "w1", "l1", "u1", "2025-01-01T00:00:00", now_iso),
+        )
+        conn.commit()
+        conn.close()
+        # Open with new code — migration should add columns
+        store = ConflictStore(db_path)
+        conflicts = store.get_conflicts()
+        assert len(conflicts) == 1
+        assert conflicts[0].id == "old-id"
+        assert conflicts[0].losing_content is None  # new column, NULL for old rows

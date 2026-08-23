@@ -21,7 +21,11 @@ CREATE TABLE IF NOT EXISTS memory_conflict_log (
     losing_memory_id TEXT NOT NULL,
     losing_origin_uuid TEXT NOT NULL,
     losing_updated_at TEXT NOT NULL,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    losing_content TEXT,
+    losing_title TEXT,
+    losing_type TEXT,
+    losing_agent_source TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_conflict_log_topic_key
@@ -44,8 +48,16 @@ class ConflictStore:
         self._init_db()
 
     def _init_db(self) -> None:
-        """Create tables and indexes if not exist."""
+        """Create tables and indexes if not exist. Migrate schema if needed."""
         self._conn.executescript(_SCHEMA)
+        # Migration: add losing content columns if missing (existing DBs)
+        for col in ("losing_content", "losing_title", "losing_type", "losing_agent_source"):
+            try:
+                self._conn.execute(
+                    f"ALTER TABLE memory_conflict_log ADD COLUMN {col} TEXT"
+                )
+            except sqlite3.OperationalError:
+                pass  # column already exists
         self._conn.commit()
 
     def close(self) -> None:
@@ -60,6 +72,10 @@ class ConflictStore:
         losing_memory_id: str,
         losing_origin_uuid: str,
         losing_updated_at: str,
+        losing_content: str | None = None,
+        losing_title: str | None = None,
+        losing_type: str | None = None,
+        losing_agent_source: str | None = None,
     ) -> str:
         """Insert a conflict entry. Returns the conflict_id."""
         conflict_id = str(uuid.uuid4())
@@ -69,8 +85,9 @@ class ConflictStore:
             """
             INSERT INTO memory_conflict_log
                 (id, topic_key, winning_memory_id, losing_memory_id,
-                 losing_origin_uuid, losing_updated_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                 losing_origin_uuid, losing_updated_at, created_at,
+                 losing_content, losing_title, losing_type, losing_agent_source)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 conflict_id,
@@ -80,6 +97,10 @@ class ConflictStore:
                 losing_origin_uuid,
                 losing_updated_at,
                 now,
+                losing_content,
+                losing_title,
+                losing_type,
+                losing_agent_source,
             ),
         )
         self._conn.commit()
@@ -115,7 +136,8 @@ class ConflictStore:
         rows = self._conn.execute(
             f"""
             SELECT id, topic_key, winning_memory_id, losing_memory_id,
-                   losing_origin_uuid, losing_updated_at, created_at
+                   losing_origin_uuid, losing_updated_at, created_at,
+                   losing_content, losing_title, losing_type, losing_agent_source
             FROM memory_conflict_log
             {where}
             ORDER BY created_at DESC
@@ -132,6 +154,10 @@ class ConflictStore:
                 losing_origin_uuid=row["losing_origin_uuid"],
                 losing_updated_at=row["losing_updated_at"],
                 created_at=row["created_at"],
+                losing_content=row["losing_content"],
+                losing_title=row["losing_title"],
+                losing_type=row["losing_type"],
+                losing_agent_source=row["losing_agent_source"],
             )
             for row in rows
         ]

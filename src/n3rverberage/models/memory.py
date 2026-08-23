@@ -158,3 +158,7 @@ class ConflictLogEntry(BaseModel):
     losing_origin_uuid: str
     losing_updated_at: str
     created_at: str
+    losing_content: str | None = None
+    losing_title: str | None = None
+    losing_type: str | None = None
+    losing_agent_source: str | None = None

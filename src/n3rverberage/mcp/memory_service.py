@@ -107,7 +107,7 @@ class MemoryService:
             existing = self.vector_store.get(
                 where=self.vector_store._active_where({"topic_key": validated_topic_key}),
                 limit=1,
-                include=["metadatas"],
+                include=["metadatas", "documents"],
             )
             if existing["ids"]:
                 document_id = existing["ids"][0]
@@ -157,6 +157,10 @@ class MemoryService:
                         losing_memory_id=document_id,
                         losing_origin_uuid=str(existing_meta.get("origin_uuid", "unknown")),
                         losing_updated_at=existing_updated_at or now.isoformat(),
+                        losing_content=existing["documents"][0] if existing["documents"] else None,
+                        losing_title=str(existing_meta.get("title", "")) or None,
+                        losing_type=str(existing_meta.get("type", "")) or None,
+                        losing_agent_source=str(existing_meta.get("agent_source", "")) or None,
                     )
                     status = "updated"
                     revision_count = int(existing_meta.get("revision_count", 1)) + 1
