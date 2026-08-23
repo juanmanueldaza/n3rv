@@ -1,45 +1,78 @@
 {
-  "$schema": "https://opencode.ai/config.json",
-  "default_agent": "n3rv",
-  "instructions": [
-    "AGENTS.md",
-    "CONTRIBUTING.md",
-    "SECURITY.md",
-    "docs/*.md"
-  ],
-  "plugin": [
-    ".opencode/plugins/n3rv-lifecycle.js",
-    ".opencode/plugins/n3rv-shell-env.js"
-  ],
-  "tools": {
-    "websearch": true
-  },
-  "agent": {
-    "build": { "disable": true },
-    "plan": { "disable": true }
-  },
-  "mcp": {
-    "n3rv-memory": {
-      "type": "local",
-      "command": ["uv", "run", "n3rv-memory"],
-      "environment": {"NERV_AGENT_SOURCE": "opencode"}
+    "$schema": "https://opencode.ai/config.json",
+    "default_agent": "n3rv",
+    "instructions": [
+        "AGENTS.md",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "docs/*.md"
+    ],
+    "plugin": [
+        ".opencode/plugins/n3rv-lifecycle.js",
+        ".opencode/plugins/n3rv-shell-env.js"
+    ],
+    "tools": {
+        "websearch": true
     },
-    "n3rv-hub": {
-      "type": "local",
-      "command": ["uv", "run", "n3rv-hub"],
-      "environment": {"NERV_AGENT_SOURCE": "opencode"}
+    "agent": {
+        "build": {
+            "disable": true
+        },
+        "plan": {
+            "disable": true
+        }
     },
-    "github": {
-      "type": "local",
-      "command": [".opencode/scripts/github-mcp-wrapper.sh"]
-    },
-    "context7": {
-      "type": "local",
-      "command": ["npx", "-y", "@upstash/context7-mcp@latest"]
-    },
-    "sequential-thinking": {
-      "type": "local",
-      "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking@latest"]
+    "mcp": {
+        "n3rv-memory": {
+            "type": "local",
+            "command": [
+                "uv",
+                "run",
+                "n3rv-memory"
+            ],
+            "environment": {
+                "NERV_AGENT_SOURCE": "opencode",
+                "N3RV_AGENT_SOURCE": "opencode"
+            }
+        },
+        "n3rv-hub": {
+            "type": "local",
+            "command": [
+                "uv",
+                "run",
+                "n3rv-hub"
+            ],
+            "environment": {
+                "NERV_AGENT_SOURCE": "opencode",
+                "N3RV_AGENT_SOURCE": "opencode"
+            }
+        },
+        "github": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@github/github-mcp-server"
+            ],
+            "environment": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+            }
+        },
+        "context7": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@upstash/context7-mcp@latest"
+            ]
+        },
+        "sequential-thinking": {
+            "type": "local",
+            "command": [
+                "npx",
+                "-y",
+                "@modelcontextprotocol/server-sequential-thinking@latest"
+            ]
+        }
     }
-  }
 }

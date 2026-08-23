@@ -45,7 +45,7 @@ def _make_embedding_function() -> EmbeddingFunction | None:
         import onnxruntime  # noqa: F401
 
         return None
-    except ImportError, Exception:
+    except (ImportError, Exception):
         return _SimpleHashEmbeddingFunction()
 
 

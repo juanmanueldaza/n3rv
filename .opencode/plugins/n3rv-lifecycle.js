@@ -10,29 +10,16 @@
  * Uses the OpenCode 1.14.x plugin API: a factory function returning hooks.
  */
 
-// ──────────────────────────────────────────────
-// Internal: best-effort memory MCP read
-// ──────────────────────────────────────────────
+import { memoryRpc } from "../shared/rpc.js";
 
-const MEMORY_MCP_URL = "http://127.0.0.1:19821";
+// ──────────────────────────────────────────────
+// Internal: best-effort memory MCP wrappers
+// ──────────────────────────────────────────────
 
 async function memorySearch(query, limit = 10) {
   try {
-    const res = await fetch(`${MEMORY_MCP_URL}/rpc`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method: "memory_search",
-        params: { query, limit },
-      }),
-      signal: AbortSignal.timeout(2000),
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (data.error) return [];
-    return data.result ?? [];
+    const result = await memoryRpc("memory_search", { query, limit });
+    return result.error ? [] : (result ?? []);
   } catch {
     return [];
   }
@@ -40,18 +27,8 @@ async function memorySearch(query, limit = 10) {
 
 async function memorySessionSummary(summaryText) {
   try {
-    const res = await fetch(`${MEMORY_MCP_URL}/rpc`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method: "memory_session_summary",
-        params: { summary: summaryText },
-      }),
-      signal: AbortSignal.timeout(2000),
-    });
-    return res.ok;
+    const result = await memoryRpc("memory_session_summary", { summary: summaryText });
+    return !result.error;
   } catch {
     return false;
   }
@@ -126,7 +103,7 @@ const IDLE_THRESHOLD_MS = 300_000; // 5 minutes
 // Plugin factory (OpenCode 1.14.x API)
 // ──────────────────────────────────────────────
 
-export const N3rvLifecycle = async (_ctx) => {
+export const NervLifecycle = async (_ctx) => {
   return {
     /**
      * Compaction hook: inject SDD pipeline state into compaction context.
@@ -170,4 +147,4 @@ export const N3rvLifecycle = async (_ctx) => {
   };
 };
 
-export default N3rvLifecycle;
+export default NervLifecycle;

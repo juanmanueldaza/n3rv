@@ -63,6 +63,128 @@ def _check_nerv_migration(root: Path) -> bool:
         print("Please enter 1 or 2.")
 
 
+# ──────────────────────────────────────────────
+# SDD phase sub-agent metadata
+# Shared template: opencode/agents/sdd-phase.md.j2
+# Each entry maps an output path stem → template context
+# ──────────────────────────────────────────────
+
+SDD_PHASE_MAP: dict[str, dict] = {
+    "sdd-explorer": {
+        "phase_description": "Explore codebase to build context for a planned SDD change. Read-only investigation.",
+        "phase_model": "opencode-go/deepseek-v4-pro",
+        "phase_skill": "sdd-explore",
+        "phase_edit_denied": True,
+        "phase_steps": [
+            "1. Read the change description from context",
+            "2. Search memory for prior context on this topic",
+            "3. Identify relevant files, modules, directories",
+            "4. Read interfaces (not implementation details)",
+            "5. Note patterns, conventions, dependencies, test coverage, risks",
+        ],
+        "phase_save_title": "SDD Explore: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-context",
+        "phase_save_type": "context",
+    },
+    "sdd-proposer": {
+        "phase_description": "Propose 2-3 solution approaches, evaluate trade-offs, and recommend one for an SDD change.",
+        "phase_model": "opencode-go/deepseek-v4-pro",
+        "phase_skill": "sdd-propose",
+        "phase_edit_denied": True,
+        "phase_steps": [
+            "1. Load context from memory: topic_key=`sdd-<change_id>-context`",
+            "2. Generate 2-3 distinct approaches with trade-offs",
+            "3. Recommend one with rationale",
+        ],
+        "phase_save_title": "SDD Proposal: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-proposal",
+        "phase_save_type": "decision",
+    },
+    "sdd-speccer": {
+        "phase_description": "Write a formal spec with goals, acceptance criteria, and constraints for an SDD change.",
+        "phase_model": "opencode-go/deepseek-v4-pro",
+        "phase_skill": "sdd-spec",
+        "phase_edit_denied": True,
+        "phase_steps": [
+            "1. Load proposal from memory: topic_key=`sdd-<change_id>-proposal`",
+            "2. Write structured spec: goals, non-goals, acceptance criteria, constraints, out of scope",
+            "3. Every acceptance criterion must be testable (binary pass/fail)",
+        ],
+        "phase_save_title": "SDD Spec: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-spec",
+        "phase_save_type": "context",
+    },
+    "sdd-designer": {
+        "phase_description": "Write technical design for an SDD change: components, interfaces, data flow, edge cases.",
+        "phase_model": "opencode-go/deepseek-v4-pro",
+        "phase_skill": "sdd-design",
+        "phase_edit_denied": True,
+        "phase_steps": [
+            "1. Load spec from memory: topic_key=`sdd-<change_id>-spec`",
+            "2. Load proposal from memory: topic_key=`sdd-<change_id>-proposal`",
+            "3. Read relevant source files to ground design in codebase",
+            "4. Produce technical design: components, interfaces, data flow, error handling, edge cases",
+            "5. Design must be traceable to spec acceptance criteria",
+        ],
+        "phase_save_title": "SDD Design: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-design",
+        "phase_save_type": "architecture",
+    },
+    "sdd-task-planner": {
+        "phase_description": "Break SDD design into ordered list of atomic, reviewable implementation tasks.",
+        "phase_model": "opencode-go/qwen3.5-plus",
+        "phase_skill": "sdd-tasks",
+        "phase_edit_denied": True,
+        "phase_steps": [
+            "1. Load design from memory: topic_key=`sdd-<change_id>-design`",
+            "2. Load spec from memory: topic_key=`sdd-<change_id>-spec`",
+            "3. Break into atomic tasks (each independently reviewable)",
+            "4. Order tasks so earlier ones unblock later ones",
+            "5. Every spec acceptance criterion covered by at least one task",
+        ],
+        "phase_save_title": "SDD Tasks: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-tasks",
+        "phase_save_type": "context",
+    },
+    "sdd-verifier": {
+        "phase_description": "Verify implementation against spec acceptance criteria. Produces pass/fail verdict.",
+        "phase_model": "opencode-go/kimi-k2.6",
+        "phase_skill": "sdd-verify",
+        "phase_edit_denied": False,
+        "phase_steps": [
+            "1. Load spec from memory: topic_key=`sdd-<change_id>-spec`",
+            "2. Load implementation notes from memory: topic_key=`sdd-<change_id>-impl`",
+            "3. For each acceptance criterion: read code, run tests, mark PASS/FAIL/PARTIAL with evidence",
+            "4. Run full test suite for regression check",
+        ],
+        "phase_save_title": "SDD Verify: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-verify",
+        "phase_save_type": "context",
+    },
+    "sdd-archiver": {
+        "phase_description": "Archive all SDD artifacts into a single completed record in memory.",
+        "phase_model": "opencode-go/qwen3.5-plus",
+        "phase_skill": "sdd-archive",
+        "phase_edit_denied": True,
+        "phase_steps": [
+            "1. Load all phase artifacts from memory (context, proposal, spec, design, tasks, impl, verify)",
+            "2. Write consolidated archive entry",
+        ],
+        "phase_save_title": "SDD Complete: <change_id>",
+        "phase_save_topic_key": "sdd-<change_id>-done",
+        "phase_save_type": "summary",
+    },
+}
+
+SDD_PHASE_SLUGS = list(SDD_PHASE_MAP.keys())
+SDD_PHASE_TEMPLATE = "opencode/agents/sdd-phase.md.j2"
+
+# Build manifest entries dynamically from phase data
+_SDD_MANIFEST_ENTRIES = [
+    (SDD_PHASE_TEMPLATE, f".opencode/agents/{slug}.md", False, False)
+    for slug in SDD_PHASE_SLUGS
+]
+
 FILE_MANIFEST = [
     ("n3rv/a2a-config.yaml.j2", ".n3rv/a2a-config.yaml", False, False),
     (
@@ -86,6 +208,13 @@ FILE_MANIFEST = [
     (
         "opencode/plugins/n3rv-shell-env.js.j2",
         ".opencode/plugins/n3rv-shell-env.js",
+        False,
+        False,
+    ),
+    # Shared module (must be written before tools/plugins that import it)
+    (
+        "opencode/shared/rpc.js.j2",
+        ".opencode/shared/rpc.js",
         False,
         False,
     ),
@@ -180,49 +309,8 @@ FILE_MANIFEST = [
     ),
     ("opencode/commands/review.md.j2", ".opencode/commands/review.md", False, False),
     ("opencode/commands/handoff.md.j2", ".opencode/commands/handoff.md", False, False),
-    # SDD phase sub-agents
-    (
-        "opencode/agents/sdd-explorer.md.j2",
-        ".opencode/agents/sdd-explorer.md",
-        False,
-        False,
-    ),
-    (
-        "opencode/agents/sdd-proposer.md.j2",
-        ".opencode/agents/sdd-proposer.md",
-        False,
-        False,
-    ),
-    (
-        "opencode/agents/sdd-speccer.md.j2",
-        ".opencode/agents/sdd-speccer.md",
-        False,
-        False,
-    ),
-    (
-        "opencode/agents/sdd-designer.md.j2",
-        ".opencode/agents/sdd-designer.md",
-        False,
-        False,
-    ),
-    (
-        "opencode/agents/sdd-task-planner.md.j2",
-        ".opencode/agents/sdd-task-planner.md",
-        False,
-        False,
-    ),
-    (
-        "opencode/agents/sdd-verifier.md.j2",
-        ".opencode/agents/sdd-verifier.md",
-        False,
-        False,
-    ),
-    (
-        "opencode/agents/sdd-archiver.md.j2",
-        ".opencode/agents/sdd-archiver.md",
-        False,
-        False,
-    ),
+    # SDD phase sub-agents (generated from SDD_PHASE_MAP)
+    *_SDD_MANIFEST_ENTRIES,
     # Git & GitHub sub-agents
     ("opencode/agents/git-ops.md.j2", ".opencode/agents/git-ops.md", False, False),
     (
@@ -332,7 +420,14 @@ def run_init(
             make_executable,
         ) in all_manifest_entries:
             try:
-                content = engine.render(template_name, render_ctx)
+                # Merge phase-specific context for SDD agents
+                entry_ctx = dict(render_ctx)
+                if template_name == SDD_PHASE_TEMPLATE:
+                    phase_key = Path(output_path).stem
+                    phase_data = SDD_PHASE_MAP.get(phase_key, {})
+                    entry_ctx.update(phase_data)
+
+                content = engine.render(template_name, entry_ctx)
                 target = root / output_path
                 result = write_file(
                     target,

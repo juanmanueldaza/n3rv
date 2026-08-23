@@ -31,7 +31,7 @@ function deriveSource(agentName) {
 /**
  * Plugin factory (OpenCode 1.14.x API)
  */
-export const N3rvShellEnv = async (_ctx) => {
+export const NervShellEnv = async (_ctx) => {
   return {
     /** shell.env hook — runs before each shell subprocess. */
     "shell.env": async (input, output) => {
@@ -49,4 +49,4 @@ export const N3rvShellEnv = async (_ctx) => {
   };
 };
 
-export default N3rvShellEnv;
+export default NervShellEnv;

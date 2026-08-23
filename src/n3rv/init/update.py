@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from n3rv.init import NERV_DIR
+from n3rv.init import NERV_DIR, SDD_PHASE_MAP
 from n3rv.init.analyzer import analyze_project
 from n3rv.init.context import ProjectContext
 from n3rv.init.detector import detect_stack
@@ -98,6 +98,34 @@ FILE_UPDATE_MANIFEST: list[UpdateEntry] = [
         UpdateStrategy.OVERWRITE,
         make_executable=True,
     ),
+    # Shared module (must be written before tools/plugins that import it)
+    UpdateEntry(
+        "opencode/shared/rpc.js.j2",
+        ".opencode/shared/rpc.js",
+        UpdateStrategy.CREATE_IF_MISSING,
+    ),
+    # Plugins & tools (infrastructure — overwrite to keep in sync)
+    UpdateEntry(
+        "opencode/plugins/n3rv-lifecycle.js.j2",
+        ".opencode/plugins/n3rv-lifecycle.js",
+        UpdateStrategy.OVERWRITE,
+    ),
+    UpdateEntry(
+        "opencode/plugins/n3rv-shell-env.js.j2",
+        ".opencode/plugins/n3rv-shell-env.js",
+        UpdateStrategy.OVERWRITE,
+    ),
+    UpdateEntry(
+        "opencode/tools/n3rv-stats.ts.j2",
+        ".opencode/tools/n3rv-stats.ts",
+        UpdateStrategy.OVERWRITE,
+    ),
+    # Package config — merge to preserve user extensions
+    UpdateEntry(
+        "opencode/package.json.j2",
+        ".opencode/package.json",
+        UpdateStrategy.JSON_MERGE,
+    ),
     # Skills in opencode-native path
     UpdateEntry(
         "opencode/skills/code/SKILL.md.j2",
@@ -180,42 +208,19 @@ FILE_UPDATE_MANIFEST: list[UpdateEntry] = [
         ".opencode/commands/handoff.md",
         UpdateStrategy.SKIP_DEFAULT,
     ),
-    # SDD phase sub-agents
-    UpdateEntry(
-        "opencode/agents/sdd-explorer.md.j2",
-        ".opencode/agents/sdd-explorer.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
-    UpdateEntry(
-        "opencode/agents/sdd-proposer.md.j2",
-        ".opencode/agents/sdd-proposer.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
-    UpdateEntry(
-        "opencode/agents/sdd-speccer.md.j2",
-        ".opencode/agents/sdd-speccer.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
-    UpdateEntry(
-        "opencode/agents/sdd-designer.md.j2",
-        ".opencode/agents/sdd-designer.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
-    UpdateEntry(
-        "opencode/agents/sdd-task-planner.md.j2",
-        ".opencode/agents/sdd-task-planner.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
-    UpdateEntry(
-        "opencode/agents/sdd-verifier.md.j2",
-        ".opencode/agents/sdd-verifier.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
-    UpdateEntry(
-        "opencode/agents/sdd-archiver.md.j2",
-        ".opencode/agents/sdd-archiver.md",
-        UpdateStrategy.SKIP_DEFAULT,
-    ),
+    # SDD phase sub-agents (generated from SDD_PHASE_MAP)
+    *[
+        UpdateEntry("opencode/agents/sdd-phase.md.j2", f".opencode/agents/{slug}.md", UpdateStrategy.SKIP_DEFAULT)
+        for slug in [
+            "sdd-explorer",
+            "sdd-proposer",
+            "sdd-speccer",
+            "sdd-designer",
+            "sdd-task-planner",
+            "sdd-verifier",
+            "sdd-archiver",
+        ]
+    ],
     # Git & GitHub sub-agents
     UpdateEntry(
         "opencode/agents/git-ops.md.j2",
@@ -402,7 +407,14 @@ def _process_entry(
     force_commands: bool,
 ) -> UpdateResult:
     try:
-        content = engine.render(entry.template_name, render_ctx)
+        # Merge phase-specific context for SDD agents
+        entry_ctx = dict(render_ctx)
+        if entry.template_name == "opencode/agents/sdd-phase.md.j2":
+            phase_key = Path(entry.output_path).stem
+            phase_data = SDD_PHASE_MAP.get(phase_key, {})
+            entry_ctx.update(phase_data)
+
+        content = engine.render(entry.template_name, entry_ctx)
         target = root / entry.output_path
 
         if entry.strategy == UpdateStrategy.MARKER_MERGE:

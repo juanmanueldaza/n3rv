@@ -79,7 +79,7 @@ def test_deep_merge_empty_overlay():
 
 def test_manifest_has_expected_entries():
     """Test manifest has expected number of entries."""
-    assert len(FILE_UPDATE_MANIFEST) == 33
+    assert len(FILE_UPDATE_MANIFEST) == 38
 
 
 def test_manifest_marker_files():
@@ -93,7 +93,19 @@ def test_manifest_json_merge_files():
     json_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.JSON_MERGE]
     paths = {e.output_path for e in json_files}
     assert "opencode.json" in paths
-    assert len(json_files) == 1
+    assert ".opencode/package.json" in paths
+    assert len(json_files) == 2
+
+
+def test_manifest_overwrite_files():
+    """Test overwrite files include infrastructure files."""
+    ow_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.OVERWRITE]
+    paths = {e.output_path for e in ow_files}
+    assert ".n3rv/a2a-config.yaml" in paths
+    assert ".opencode/plugins/n3rv-lifecycle.js" in paths
+    assert ".opencode/plugins/n3rv-shell-env.js" in paths
+    assert ".opencode/tools/n3rv-stats.ts" in paths
+    assert len(ow_files) == 6
 
 
 def test_manifest_skip_default_files_are_commands():
@@ -117,9 +129,10 @@ def test_manifest_git_hooks_are_executable():
 
 
 def test_manifest_create_if_missing_files():
-    """Test create-if-missing files — none in current manifest."""
+    """Test create-if-missing files — shared/rpc.js is the only one."""
     cim_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.CREATE_IF_MISSING]
-    assert len(cim_files) == 0
+    assert len(cim_files) == 1
+    assert cim_files[0].output_path == ".opencode/shared/rpc.js"
 
 
 def test_update_summary_counts_correctly():

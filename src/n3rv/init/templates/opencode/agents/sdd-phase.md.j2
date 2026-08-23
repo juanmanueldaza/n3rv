@@ -1,0 +1,12 @@
+---
+description: {{ phase_description }}
+mode: subagent
+model: {{ phase_model }}
+hidden: true{% if phase_edit_denied %}
+permission:
+  edit: deny{% endif %}
+---
+Load the `{{ phase_skill }}` skill and execute it for the given change_id.
+{% for step in phase_steps %}
+{{ step }}{% endfor %}
+Save to memory: title=`{{ phase_save_title }}`, topic_key=`{{ phase_save_topic_key }}`, type=`{{ phase_save_type }}`

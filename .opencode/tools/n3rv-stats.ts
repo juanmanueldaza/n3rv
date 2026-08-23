@@ -4,90 +4,13 @@
  * These tools communicate with N3RV MCP servers via HTTP, bypassing the
  * MCP subprocess round-trip for faster LLM tool calls.
  *
- * All tools have a 1s hard timeout and return structured JSON on failure.
+ * All tools have a 2s hard timeout and return structured JSON on failure.
  *
  * Uses @opencode-ai/plugin tool() helper to avoid Zod version conflicts.
  */
 
 import { tool } from "@opencode-ai/plugin";
-
-// ──────────────────────────────────────────────
-// Internal: call n3rv-memory MCP via HTTP POST
-// ──────────────────────────────────────────────
-const MEMORY_MCP_URL = "http://127.0.0.1:19821";
-
-async function memoryRpc(method: string, params: Record<string, unknown> = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1000);
-
-  try {
-    const res = await fetch(`${MEMORY_MCP_URL}/rpc`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method,
-        params,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      return { error: `HTTP ${res.status}: ${res.statusText}` };
-    }
-
-    const data = await res.json();
-    if (data.error) {
-      return { error: data.error.message ?? String(data.error) };
-    }
-    return data.result;
-  } catch (err: any) {
-    if (err.name === "AbortError") return { error: "timeout" };
-    return { error: err.message ?? "unavailable" };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-// ──────────────────────────────────────────────
-// Internal: call n3rv-hub MCP via HTTP POST
-// ──────────────────────────────────────────────
-const HUB_MCP_URL = "http://127.0.0.1:19820";
-
-async function hubRpc(method: string, params: Record<string, unknown> = {}) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1000);
-
-  try {
-    const res = await fetch(`${HUB_MCP_URL}/rpc`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method,
-        params,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      return { error: `HTTP ${res.status}: ${res.statusText}` };
-    }
-
-    const data = await res.json();
-    if (data.error) {
-      return { error: data.error.message ?? String(data.error) };
-    }
-    return data.result;
-  } catch (err: any) {
-    if (err.name === "AbortError") return { error: "timeout" };
-    return { error: err.message ?? "unavailable" };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
+import { memoryRpc, hubRpc, healthCheck } from "../shared/rpc.js";
 
 // ──────────────────────────────────────────────
 // Tools
@@ -123,23 +46,8 @@ export const n3rv_hub_health = tool({
   description: "Check whether the N3RV A2A hub is reachable and healthy.",
   args: {},
   async execute() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1000);
-
-    try {
-      const res = await fetch("http://127.0.0.1:19820/health", {
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        return JSON.stringify({ connected: false, status: res.status });
-      }
-      const data = await res.json();
-      return JSON.stringify({ connected: true, ...data });
-    } catch {
-      return JSON.stringify({ connected: false });
-    } finally {
-      clearTimeout(timeout);
-    }
+    const result = await healthCheck();
+    return JSON.stringify(result);
   },
 });
 

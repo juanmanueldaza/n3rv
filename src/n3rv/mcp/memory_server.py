@@ -65,7 +65,7 @@ def build_memory_server(project_root: Path | None = None):
         include_personal: bool = False,
     ) -> dict:
         return result_payload(
-            service.search_memories(
+            service.memory_search(
                 query=query,
                 limit=limit,
                 type_filter=type_filter,

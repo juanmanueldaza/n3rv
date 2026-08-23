@@ -7,6 +7,10 @@ def _tools_path() -> Path:
     return Path(__file__).resolve().parents[2] / ".opencode" / "tools" / "n3rv-stats.ts"
 
 
+def _shared_path() -> Path:
+    return Path(__file__).resolve().parents[2] / ".opencode" / "shared" / "rpc.js"
+
+
 class TestN3rvStatsTools:
     def test_file_exists(self) -> None:
         assert _tools_path().is_file()
@@ -31,10 +35,15 @@ class TestN3rvStatsTools:
         content = _tools_path().read_text(encoding="utf-8")
         assert "export const n3rv_check_pending_tasks" in content
 
-    def test_hub_health_returns_false_on_failure(self) -> None:
+    def test_hub_health_uses_shared_healthcheck(self) -> None:
         content = _tools_path().read_text(encoding="utf-8")
-        # Should return {connected: false} on failure, never throw
-        assert "connected: false" in content or '"connected": false' in content
+        # n3rv_hub_health delegates to healthCheck() in shared module
+        assert "healthCheck" in content
+
+    def test_shared_healthcheck_returns_connected_false(self) -> None:
+        shared = _shared_path().read_text(encoding="utf-8")
+        # healthCheck() in shared module returns {connected: false} on failure
+        assert "connected: false" in shared
 
     def test_task_status_accepts_task_id_param(self) -> None:
         content = _tools_path().read_text(encoding="utf-8")
@@ -49,5 +58,6 @@ class TestN3rvStatsTools:
         assert "tool({" in content
 
     def test_timeout_handling_present(self) -> None:
-        content = _tools_path().read_text(encoding="utf-8")
-        assert "AbortController" in content or "timeout" in content.lower()
+        shared = _shared_path().read_text(encoding="utf-8")
+        # Timeout handling moved to shared/rpc.js
+        assert "AbortController" in shared or "timeout" in shared.lower()
