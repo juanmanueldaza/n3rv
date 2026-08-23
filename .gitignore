@@ -12,3 +12,6 @@ dist/
 AGENTS.md
 opencode.json
 opencode.template.json
+
+# legacy fork runtime dir
+.n3rverberage/
