@@ -1,0 +1,126 @@
+---
+name: project-board
+description: "Manage the reverberage roadmap project board: update issue status, track SDD phase progress, add issues to board."
+compatibility: opencode
+when_to_use: |
+  - When an SDD phase completes and the board must be updated
+  - When creating a new issue that should appear on the board
+  - When needing to check or sync board state
+allowed-tools:
+  - Bash
+  - mcp__n3rverberage-memory__memory_recall
+  - mcp__n3rverberage-memory__memory_save
+model: fast
+effort: low
+user-invocable: false
+---
+
+# Skill: project-board
+
+## Board Identity
+
+All commands target the **Reverberage Roadmap** project board.
+
+| Property | Value |
+|----------|-------|
+| Project number | `2` |
+| Owner | `reverberage` |
+| Project ID (GraphQL) | `PVT_kwDOEeFGTc4Bc5Ct` |
+
+## Field IDs
+
+### Status field
+
+| Field ID | Type |
+|----------|------|
+| `PVTSSF_lADOEeFGTc4Bc5CtzhXejII` | SingleSelect |
+
+| Option | ID |
+|--------|-----|
+| Todo | `f75ad846` |
+| In Progress | `47fc9ee4` |
+| Done | `98236657` |
+
+### SDD Phase field
+
+| Field ID | Type |
+|----------|------|
+| `PVTSSF_lADOEeFGTc4Bc5CtzhYUpaI` | SingleSelect |
+
+| Option | ID | SDD Phase |
+|--------|-----|-----------|
+| Todo | `f649029b` | No SDD work started |
+| Explore | `cbe57d4d` | Phase 1 |
+| Propose | `f7b5e3ad` | Phase 2 |
+| Spec | `215b5bd3` | Phase 3 |
+| Design | `8a8f0ea4` | Phase 4 |
+| Tasks | `1b7d843f` | Phase 5 |
+| Apply | `e827dc3f` | Phase 6 |
+| Verify | `8242b830` | Phase 7 |
+| Done | `ce5c9fcc` | Phase 8 (archived) |
+
+## SDD Phase → Board Update Map
+
+When an SDD phase completes, update the board as follows:
+
+| SDD Phase Completes | Status | SDD Phase |
+|---------------------|--------|-----------|
+| explore | In Progress (`47fc9ee4`) | Explore (`cbe57d4d`) |
+| propose | In Progress (`47fc9ee4`) | Propose (`f7b5e3ad`) |
+| spec | In Progress (`47fc9ee4`) | Spec (`215b5bd3`) |
+| design | In Progress (`47fc9ee4`) | Design (`8a8f0ea4`) |
+| tasks | In Progress (`47fc9ee4`) | Tasks (`1b7d843f`) |
+| apply | In Progress (`47fc9ee4`) | Apply (`e827dc3f`) |
+| verify | In Progress (`47fc9ee4`) | Verify (`8242b830`) |
+| archive | Done (`98236657`) | Done (`ce5c9fcc`) |
+
+## Commands
+
+### Update an item's Status
+
+```bash
+gh project item-edit \
+  --id <ITEM_ID> \
+  --field-id PVTSSF_lADOEeFGTc4Bc5CtzhXejII \
+  --project-id PVT_kwDOEeFGTc4Bc5Ct \
+  --single-select-option-id <OPTION_ID>
+```
+
+### Update an item's SDD Phase
+
+```bash
+gh project item-edit \
+  --id <ITEM_ID> \
+  --field-id PVTSSF_lADOEeFGTc4Bc5CtzhYUpaI \
+  --project-id PVT_kwDOEeFGTc4Bc5Ct \
+  --single-select-option-id <PHASE_OPTION_ID>
+```
+
+### Add an issue to the project board
+
+```bash
+gh project item-add 2 --owner reverberage --url <ISSUE_URL>
+```
+
+### Find an item ID from an issue number
+
+```bash
+gh api graphql -f query='query{organization(login:"reverberage"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id'
+```
+
+Replace `<ISSUE_NUMBER>` with the actual issue number.
+
+## Workflow: After SDD Phase Completion
+
+After `memory_save` succeeds in any SDD phase skill, update the board:
+
+1. Find the item ID for the issue
+2. Update both Status and SDD Phase fields
+3. Skip silently if the issue is not on the board
+
+## Rules
+
+- NEVER update the board before the memory_save succeeds. The board is downstream of MAGI.
+- If `ITEM_ID` is empty (issue not on board), skip the update — do NOT fail the task.
+- Always update both Status AND SDD Phase together for consistency.
+- All commands use `--owner reverberage`, never `--org`.

@@ -4,3 +4,11 @@
 __pycache__/
 .venv/
 dist/
+
+# N3RVERBERAGE — NEVER COMMIT (template-controlled)
+.n3rverberage/
+.opencode/
+.githooks/
+AGENTS.md
+opencode.json
+opencode.template.json

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from n3rv.init.analyzer.structure import StructureDetector
-from n3rv.init.context import Stack
+from n3rverberage.init.analyzer.structure import StructureDetector
+from n3rverberage.init.context import Stack
 
 
 class TestStructureDetector:
@@ -31,7 +31,7 @@ class TestStructureDetector:
     def test_excluded_dirs_filtered(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
         (tmp_path / ".opencode").mkdir()
-        (tmp_path / ".n3rv").mkdir()
+        (tmp_path / ".n3rverberage").mkdir()
         (tmp_path / "node_modules").mkdir()
         (tmp_path / "__pycache__").mkdir()
         (tmp_path / "venv").mkdir()
@@ -46,17 +46,17 @@ class TestStructureDetector:
 name = "testapp"
 
 [project.scripts]
-n3rv = "n3rv.cli:main"
-n3rv-memory = "n3rv.mcp.memory_server:main"
+n3rverberage = "n3rverberage.cli:main"
+n3rverberage-memory = "n3rverberage.mcp.memory_server:main"
 
 [project.gui-scripts]
-n3rv-gui = "n3rv.gui:main"
+n3rverberage-gui = "n3rverberage.gui:main"
 """
         (tmp_path / "pyproject.toml").write_text(content, encoding="utf-8")
         result = StructureDetector().detect(tmp_path, Stack.PYTHON)
-        assert "n3rv" in result.entry_points
-        assert "n3rv-memory" in result.entry_points
-        assert "n3rv-gui" in result.entry_points
+        assert "n3rverberage" in result.entry_points
+        assert "n3rverberage-memory" in result.entry_points
+        assert "n3rverberage-gui" in result.entry_points
 
     def test_key_dirs_identified(self, tmp_path: Path) -> None:
         (tmp_path / "app").mkdir()

@@ -1,6 +1,6 @@
 # SDD Workflow
 
-Spec-Driven Development (SDD) is an 8-phase workflow for making structured changes to a codebase. Each phase is implemented as an agent skill that reads from and writes to N3RV's persistent memory.
+Spec-Driven Development (SDD) is an 8-phase workflow for making structured changes to a codebase. Each phase is implemented as an agent skill that reads from and writes to N3RVERBERAGE's persistent memory.
 
 ## Phases Overview
 

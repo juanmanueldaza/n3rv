@@ -5,14 +5,14 @@ from datetime import UTC, datetime
 
 import pytest
 
-from n3rv.mcp.memory_server import build_memory_server
-from n3rv.mcp.memory_service import MemoryService
-from n3rv.mcp.shared import detect_agent_source
-from n3rv.mcp.vector_store import VectorStore
+from n3rverberage.mcp.memory_server import build_memory_server
+from n3rverberage.mcp.memory_service import MemoryService
+from n3rverberage.mcp.shared import detect_agent_source
+from n3rverberage.mcp.vector_store import VectorStore
 
 
 def test_memory_save_and_recall(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
     service = MemoryService(runtime_settings)
 
     saved = service.memory_save(
@@ -131,7 +131,7 @@ def test_memory_delete_raises_for_unknown_id(runtime_settings) -> None:
 
 
 def test_memory_stats_groups_active_memories(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
     service = MemoryService(runtime_settings)
     service.memory_save(
         content="ADR: split memory and hub services.",
@@ -141,13 +141,13 @@ def test_memory_stats_groups_active_memories(runtime_settings, monkeypatch) -> N
         scope="project",
     )
     service.memory_save(
-        content="Use uv for dependency management.",
+        content="Use hatchling for build backend.",
         title="Config",
         type="config",
-        topic_key="uv-config",
+        topic_key="build-config",
         scope="personal",
     )
-    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
     deleted = service.memory_save(
         content="Temporary debugging note.",
         title="Debug note",
@@ -327,7 +327,7 @@ def test_build_memory_server_enables_stateless_http(runtime_settings) -> None:
 
 
 def test_detect_agent_source_falls_back_to_env(monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
 
     assert detect_agent_source() == "opencode"
 
@@ -600,7 +600,7 @@ def test_memory_prune_leaves_new_memories(runtime_settings) -> None:
 
 @pytest.mark.asyncio
 async def test_mcp_safe_profile_hides_delete_tool(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "safe")
+    monkeypatch.setenv("N3RVERBERAGE_MEMORY_PROFILE", "safe")
     server = build_memory_server(runtime_settings.paths.project_root)
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
@@ -609,7 +609,7 @@ async def test_mcp_safe_profile_hides_delete_tool(runtime_settings, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_mcp_full_profile_includes_delete_tool(runtime_settings, monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "full")
+    monkeypatch.setenv("N3RVERBERAGE_MEMORY_PROFILE", "full")
     server = build_memory_server(runtime_settings.paths.project_root)
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
@@ -721,3 +721,244 @@ def test_metadata_migration_adds_new_fields(runtime_settings) -> None:
     metadata = result["metadatas"][0]
     assert metadata["title"] == "Legacy"
     assert metadata["type"] == "note"
+
+
+# ---------------------------------------------------------------------------
+# LWW merge and conflict logging
+# ---------------------------------------------------------------------------
+
+
+def test_memory_save_lww_newer_wins(runtime_settings, monkeypatch) -> None:
+    """When new updated_at > existing, new wins and conflict is logged."""
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "test")
+    service = MemoryService(runtime_settings)
+
+    # Create initial memory
+    first = service.memory_save(
+        content="Version one.",
+        title="LWW test",
+        type="decision",
+        topic_key="lww-test",
+        updated_at="2025-01-01T00:00:00+00:00",
+    )
+
+    # Save with newer timestamp
+    second = service.memory_save(
+        content="Version two.",
+        title="LWW test",
+        type="decision",
+        topic_key="lww-test",
+        updated_at="2025-06-15T12:00:00+00:00",
+    )
+
+    # Verify LWW: new content wins
+    assert second["status"] == "updated"
+    recalled = service.memory_recall(topic_key="lww-test")
+    assert recalled["found"] is True
+    assert recalled["content"] == "Version two."
+
+    # Verify conflict was logged
+    conflicts = service.get_conflicts(topic_key="lww-test")
+    assert len(conflicts) == 1
+    assert conflicts[0].topic_key == "lww-test"
+    assert conflicts[0].winning_memory_id == first["id"]
+    assert conflicts[0].losing_updated_at == "2025-01-01T00:00:00+00:00"
+
+
+def test_memory_save_lww_older_loses(runtime_settings) -> None:
+    """When new updated_at <= existing, existing wins (duplicate)."""
+    service = MemoryService(runtime_settings)
+
+    # Create initial memory with newer timestamp
+    service.memory_save(
+        content="Version two.",
+        title="LWW older test",
+        type="decision",
+        topic_key="lww-older-test",
+        updated_at="2025-06-15T12:00:00+00:00",
+    )
+
+    # Try to save with older timestamp
+    second = service.memory_save(
+        content="Version one.",
+        title="LWW older test",
+        type="decision",
+        topic_key="lww-older-test",
+        updated_at="2025-01-01T00:00:00+00:00",
+    )
+
+    # Verify: existing wins, new save is marked duplicate
+    assert second["status"] == "duplicate"
+    recalled = service.memory_recall(topic_key="lww-older-test")
+    assert recalled["content"] == "Version two."
+
+
+def test_memory_save_lww_same_timestamp_skips(runtime_settings) -> None:
+    """When new updated_at == existing, existing wins (same content or skip)."""
+    service = MemoryService(runtime_settings)
+
+    service.memory_save(
+        content="Version one.",
+        title="LWW same test",
+        type="decision",
+        topic_key="lww-same-test",
+        updated_at="2025-06-15T12:00:00+00:00",
+    )
+
+    # Same timestamp, different content → existing wins
+    result = service.memory_save(
+        content="Version two.",
+        title="LWW same test",
+        type="decision",
+        topic_key="lww-same-test",
+        updated_at="2025-06-15T12:00:00+00:00",
+    )
+
+    assert result["status"] == "duplicate"
+    recalled = service.memory_recall(topic_key="lww-same-test")
+    assert recalled["content"] == "Version one."
+
+
+def test_memory_save_records_origin_uuid(runtime_settings) -> None:
+    """Each save records an origin_uuid in metadata."""
+    service = MemoryService(runtime_settings)
+
+    saved = service.memory_save(
+        content="Origin test.",
+        title="Origin",
+        type="note",
+        topic_key="origin-test",
+    )
+
+    # Check metadata has origin_uuid
+    stored = service.vector_store.collection.get(ids=[saved["id"]], include=["metadatas"])
+    metadata = stored["metadatas"][0]
+    assert "origin_uuid" in metadata
+    assert metadata["origin_uuid"]  # Non-empty UUID
+
+
+def test_get_conflicts_returns_empty_initially(runtime_settings) -> None:
+    """get_conflicts returns empty list when no conflicts exist."""
+    service = MemoryService(runtime_settings)
+    conflicts = service.get_conflicts()
+    assert conflicts == []
+
+
+def test_memory_save_dedup_no_conflict(runtime_settings) -> None:
+    """Same content hash → duplicate status, no conflict logged."""
+    service = MemoryService(runtime_settings)
+
+    service.memory_save(
+        content="Exact content.",
+        title="Dedup test",
+        type="note",
+        topic_key="dedup-no-conflict",
+    )
+
+    # Same content → no conflict
+    second = service.memory_save(
+        content="Exact content.",
+        title="Different title",
+        type="note",
+        topic_key="dedup-no-conflict",
+    )
+
+    assert second["status"] == "duplicate"
+    conflicts = service.get_conflicts(topic_key="dedup-no-conflict")
+    assert len(conflicts) == 0
+
+
+def test_memory_save_lww_captures_losing_content(runtime_settings, monkeypatch) -> None:
+    """When new wins LWW, losing content/title/type/agent_source are captured."""
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "sdd-explorer")
+    service = MemoryService(runtime_settings)
+
+    # Create initial memory (this will become the "losing" version)
+    service.memory_save(
+        content="We chose PostgreSQL for the primary database.",
+        title="Database choice",
+        type="decision",
+        topic_key="db-decision",
+        updated_at="2025-01-01T00:00:00+00:00",
+    )
+
+    # Save with newer timestamp — this wins
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "sdd-speccer")
+    second = service.memory_save(
+        content="We chose SQLite for simplicity.",
+        title="Database decision",
+        type="decision",
+        topic_key="db-decision",
+        updated_at="2025-06-15T12:00:00+00:00",
+    )
+
+    assert second["status"] == "updated"
+
+    # Verify conflict has losing content
+    conflicts = service.get_conflicts(topic_key="db-decision")
+    assert len(conflicts) == 1
+    assert conflicts[0].losing_content == "We chose PostgreSQL for the primary database."
+    assert conflicts[0].losing_title == "Database choice"
+    assert conflicts[0].losing_type == "decision"
+    assert conflicts[0].losing_agent_source == "sdd-explorer"
+    assert conflicts[0].losing_updated_at == "2025-01-01T00:00:00+00:00"
+
+
+def test_memory_save_lww_older_loses_no_capture(runtime_settings) -> None:
+    """When existing wins (older new), no conflict is logged, no content captured."""
+    service = MemoryService(runtime_settings)
+
+    # Create with newer timestamp first (will win)
+    service.memory_save(
+        content="Final decision: use Redis.",
+        title="Cache strategy",
+        type="decision",
+        topic_key="cache-decision",
+        updated_at="2025-06-15T12:00:00+00:00",
+    )
+
+    # Try to overwrite with older timestamp — should be skipped
+    second = service.memory_save(
+        content="We'll use Memcached.",
+        title="Cache plan",
+        type="decision",
+        topic_key="cache-decision",
+        updated_at="2025-01-01T00:00:00+00:00",
+    )
+
+    assert second["status"] == "duplicate"
+    conflicts = service.get_conflicts(topic_key="cache-decision")
+    assert len(conflicts) == 0
+
+
+def test_memory_save_dedup_no_content_capture(runtime_settings) -> None:
+    """Same content hash → duplicate status, no conflict logged, no content captured."""
+    service = MemoryService(runtime_settings)
+
+    service.memory_save(
+        content="Exact same content.",
+        title="Dedup content test",
+        type="note",
+        topic_key="dedup-content-test",
+    )
+
+    second = service.memory_save(
+        content="Exact same content.",
+        title="Different title",
+        type="note",
+        topic_key="dedup-content-test",
+    )
+
+    assert second["status"] == "duplicate"
+    conflicts = service.get_conflicts(topic_key="dedup-content-test")
+    assert len(conflicts) == 0
+
+
+@pytest.mark.asyncio
+async def test_mcp_memory_conflicts_tool(runtime_settings, monkeypatch) -> None:
+    """The memory_conflicts MCP tool is registered and callable."""
+    monkeypatch.setenv("N3RVERBERAGE_MEMORY_PROFILE", "full")
+    server = build_memory_server(runtime_settings.paths.project_root)
+    tools = await server.list_tools()
+    tool_names = [t.name for t in tools]
+    assert "memory_conflicts" in tool_names

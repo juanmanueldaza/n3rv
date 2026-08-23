@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from n3rv.init.context import ProjectContext, Stack
+from n3rverberage.init.context import ProjectContext, Stack
 
 
 def test_stack_enum_values():
@@ -24,8 +24,8 @@ def test_project_context_build():
 
     assert ctx.project_name == "myapp"
     assert ctx.stack == Stack.PYTHON
-    assert isinstance(ctx.n3rv_version, str)
-    assert len(ctx.n3rv_version) > 0
+    assert isinstance(ctx.n3rverberage_version, str)
+    assert len(ctx.n3rverberage_version) > 0
     assert isinstance(ctx.timestamp, str)
     assert "T" in ctx.timestamp  # ISO 8601 format
 
@@ -41,7 +41,7 @@ def test_project_context_to_dict():
 
     assert result["project_name"] == "testproject"
     assert result["stack"] == "node"  # Stack enum converted to string
-    assert result["n3rv_version"] in ("dev", "0.1.0")
+    assert result["n3rverberage_version"] in ("dev", "0.1.0", "0.1.1")
     assert "timestamp" in result
 
 
@@ -58,6 +58,6 @@ def test_stack_validation():
         ProjectContext(
             project_name="test",
             stack="invalid",  # type: ignore
-            n3rv_version="0.1.0",
+            n3rverberage_version="0.1.0",
             timestamp="2025-01-15T00:00:00Z",
         )

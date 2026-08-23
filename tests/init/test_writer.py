@@ -6,7 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
-from n3rv.init.writer import (
+from n3rverberage.init.writer import (
+    GITIGNORE_SECTION_HEADER,
     MARKER_END,
     MARKER_START,
     WriteResult,
@@ -14,6 +15,14 @@ from n3rv.init.writer import (
     configure_gitignore,
     write_file,
 )
+
+GITIGNORE_PATTERNS = [
+    ".n3rverberage/",
+    ".opencode/",
+    ".githooks/",
+    "AGENTS.md",
+    "opencode.json",
+]
 
 
 def test_write_new_file_creates_file(tmp_path: Path):
@@ -54,18 +63,18 @@ def test_marker_injection_replaces_between_markers(tmp_path: Path):
     target.write_text(f"""# User Content
 
 {MARKER_START}
-Old n3rv section
+Old n3rverberage section
 {MARKER_END}
 
 More user content""")
 
-    result = write_file(target, "New n3rv section", force=False, use_markers=True)
+    result = write_file(target, "New n3rverberage section", force=False, use_markers=True)
 
     assert result == WriteResult.UPDATED
     content = target.read_text()
     assert "User Content" in content
-    assert "New n3rv section" in content
-    assert "Old n3rv section" not in content
+    assert "New n3rverberage section" in content
+    assert "Old n3rverberage section" not in content
     assert "More user content" in content
 
 
@@ -169,32 +178,36 @@ def test_configure_git_hooks_without_git_repo(tmp_path: Path):
     assert result is False
 
 
-def test_configure_gitignore_adds_entry_to_new_gitignore(tmp_path: Path):
-    """Test .n3rv/ is appended when .gitignore doesn't exist."""
+def test_configure_gitignore_adds_all_patterns_to_new_gitignore(tmp_path: Path):
+    """Test all n3rverberage patterns are in .gitignore after configure."""
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
 
     result = configure_gitignore(tmp_path)
 
     assert result is True
     gitignore = tmp_path / ".gitignore"
-    assert gitignore.exists()
-    assert ".n3rv/" in gitignore.read_text()
+    content = gitignore.read_text()
+    assert GITIGNORE_SECTION_HEADER in content
+    for pattern in GITIGNORE_PATTERNS:
+        assert pattern in content, f"Missing pattern: {pattern}"
 
 
-def test_configure_gitignore_skips_if_already_present(tmp_path: Path):
-    """Test idempotence when .n3rv/ is already in .gitignore."""
+def test_configure_gitignore_skips_if_section_header_present(tmp_path: Path):
+    """Test idempotence when section header is already in .gitignore."""
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     gitignore = tmp_path / ".gitignore"
-    gitignore.write_text("existing stuff\n.n3rv/\n")
+    gitignore.write_text(f"__pycache__/\n{GITIGNORE_SECTION_HEADER}\n.n3rverberage/\n")
 
     result = configure_gitignore(tmp_path)
 
     assert result is False
-    assert gitignore.read_text() == "existing stuff\n.n3rv/\n"
+    content = gitignore.read_text()
+    assert GITIGNORE_SECTION_HEADER in content
+    assert "__pycache__/" in content
 
 
-def test_configure_gitignore_appends_to_existing_without_entry(tmp_path: Path):
-    """Test .n3rv/ is appended to existing .gitignore that lacks it."""
+def test_configure_gitignore_appends_section_to_existing(tmp_path: Path):
+    """Test section is appended to existing .gitignore that lacks it."""
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     gitignore = tmp_path / ".gitignore"
     gitignore.write_text("__pycache__/\n*.pyc\n")
@@ -203,11 +216,29 @@ def test_configure_gitignore_appends_to_existing_without_entry(tmp_path: Path):
 
     assert result is True
     content = gitignore.read_text()
-    assert ".n3rv/" in content
+    assert GITIGNORE_SECTION_HEADER in content
     assert "__pycache__/" in content  # original preserved
+    for pattern in GITIGNORE_PATTERNS:
+        assert pattern in content, f"Missing pattern: {pattern}"
 
 
 def test_configure_gitignore_without_git_repo(tmp_path: Path):
     """Test returns False when no .git directory exists."""
     result = configure_gitignore(tmp_path)
     assert result is False
+
+
+def test_configure_gitignore_migration_from_old_format(tmp_path: Path):
+    """Test that old .n3rverberage/ entry is replaced by full section."""
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text("__pycache__/\n.n3rverberage/\n")
+
+    result = configure_gitignore(tmp_path)
+
+    # Should add the full section (old .n3rverberage/ line stays, section appended)
+    assert result is True
+    content = gitignore.read_text()
+    assert GITIGNORE_SECTION_HEADER in content
+    for pattern in GITIGNORE_PATTERNS:
+        assert pattern in content, f"Missing pattern: {pattern}"

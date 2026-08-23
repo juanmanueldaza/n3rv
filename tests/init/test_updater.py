@@ -6,7 +6,7 @@ and update strategies.
 
 from pathlib import Path
 
-from n3rv.init.update import (
+from n3rverberage.init.update import (
     FILE_UPDATE_MANIFEST,
     UpdateEntry,
     UpdateResult,
@@ -15,7 +15,7 @@ from n3rv.init.update import (
     _handle_create_if_missing,
     deep_merge_json,
 )
-from n3rv.init.writer import MARKER_END, MARKER_START, validate_markers
+from n3rverberage.init.writer import MARKER_END, MARKER_START, validate_markers
 
 
 def test_validate_markers_clean_content_returns_empty():
@@ -79,7 +79,7 @@ def test_deep_merge_empty_overlay():
 
 def test_manifest_has_expected_entries():
     """Test manifest has expected number of entries."""
-    assert len(FILE_UPDATE_MANIFEST) == 38
+    assert len(FILE_UPDATE_MANIFEST) == 39
 
 
 def test_manifest_marker_files():
@@ -101,10 +101,10 @@ def test_manifest_overwrite_files():
     """Test overwrite files include infrastructure files."""
     ow_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.OVERWRITE]
     paths = {e.output_path for e in ow_files}
-    assert ".n3rv/a2a-config.yaml" in paths
-    assert ".opencode/plugins/n3rv-lifecycle.js" in paths
-    assert ".opencode/plugins/n3rv-shell-env.js" in paths
-    assert ".opencode/tools/n3rv-stats.ts" in paths
+    assert ".n3rverberage/a2a-config.yaml" in paths
+    assert ".opencode/plugins/n3rverberage-lifecycle.js" in paths
+    assert ".opencode/plugins/n3rverberage-shell-env.js" in paths
+    assert ".opencode/tools/n3rverberage-stats.ts" in paths
     assert len(ow_files) == 6
 
 
@@ -129,10 +129,11 @@ def test_manifest_git_hooks_are_executable():
 
 
 def test_manifest_create_if_missing_files():
-    """Test create-if-missing files — shared/rpc.js is the only one."""
+    """Test create-if-missing files — shared/rpc.js and new-satellite command."""
     cim_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.CREATE_IF_MISSING]
-    assert len(cim_files) == 1
-    assert cim_files[0].output_path == ".opencode/shared/rpc.js"
+    assert len(cim_files) == 2
+    paths = {e.output_path for e in cim_files}
+    assert paths == {".opencode/shared/rpc.js", ".opencode/commands/new-satellite.md"}
 
 
 def test_update_summary_counts_correctly():

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def _plugin_path(slug: str) -> Path:
-    return Path(__file__).resolve().parents[2] / ".opencode" / "plugins" / f"n3rv-{slug}.js"
+    return Path(__file__).resolve().parents[2] / ".opencode" / "plugins" / f"n3rverberage-{slug}.js"
 
 
 class TestLifecyclePlugin:
@@ -56,13 +56,13 @@ class TestShellEnvPlugin:
 
     def test_preserves_existing_n3rv_agent_source(self) -> None:
         content = _plugin_path("shell-env").read_text(encoding="utf-8")
-        assert "N3RV_AGENT_SOURCE" in content
+        assert "N3RVERBERAGE_AGENT_SOURCE" in content
         # Should check for existing value before overwriting
-        assert "output.env.N3RV_AGENT_SOURCE" in content
+        assert "output.env.N3RVERBERAGE_AGENT_SOURCE" in content
 
     def test_agent_name_mappings(self) -> None:
         content = _plugin_path("shell-env").read_text(encoding="utf-8")
-        assert "opencode:n3rv" in content
+        assert "opencode:n3rverberage" in content
         assert "opencode:git-ops" in content
         assert "opencode:github-ops" in content
         assert "opencode:unknown" in content

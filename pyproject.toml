@@ -1,61 +1,79 @@
 [project]
-name = "n3rv"
-version = "0.1.0"
-description = "Invisible engineering infrastructure for opencode agents."
+name = "n3rverberage"
+version = "0.1.1"
+description = "Invisible engineering infrastructure for opencode agents — reverberage fork."
 readme = "README.md"
-license = { text = "GPL-2.0" }
-authors = [{ name = "Juan Manuel Daza", email = "juanmanueldaza@gmail.com" }]
-requires-python = ">=3.14"
-keywords = ["opencode", "agent", "infrastructure", "mcp", "memory", "hub"]
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Juan Manuel Daza", email = "juanmanueldaza@gmail.com" },
+    { name = "reverberage", email = "dev@reverberage.org" },
+]
+requires-python = ">=3.11"
+keywords = ["opencode", "agent", "infrastructure", "mcp", "memory", "hub", "reverberage"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.14",
-    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "aiohttp>=3.13.5",
+    # CVE-2026-45829 (PYSEC-2026-311): pre-auth RCE in ChromaDB HTTP server
+    # via /api/v2/tenants/{tenant}/databases/{db}/collections with
+    # trust_remote_code=true. NOT exploitable here: n3rverberage uses
+    # PersistentClient (local on-disk) exclusively — no HTTP server, no
+    # trust_remote_code. Bump when a fixed release ships (none as of 1.5.9).
     "chromadb>=1.5.9",
     "onnxruntime>=1.26.0",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
-    "mcp>=1.27.1",
+    "mcp>=1.27.1,<2",
     "pydantic>=2.13.4",
     "pyyaml>=6.0.3",
     "rank-bm25>=0.2.2",
     "typer>=0.25.1",
+    "openai>=2.0.0",
     "watchdog>=6.0.0",
 ]
 
 [project.scripts]
-n3rv = "n3rv.cli:main"
-n3rv-memory = "n3rv.mcp.memory_server:main"
-n3rv-hub = "n3rv.mcp.hub_server:main"
+n3rverberage = "n3rverberage.cli:main"
+n3rverberage-memory = "n3rverberage.mcp.memory_server:main"
+n3rverberage-hub = "n3rverberage.mcp.hub_server:main"
+n3rverberage-code-graph = "n3rverberage.mcp.code_graph_server:main"
 
 [project.urls]
-Homepage = "https://n3rv.daza.ar"
-Repository = "https://github.com/juanmanueldaza/n3rv"
-"Bug Tracker" = "https://github.com/juanmanueldaza/n3rv/issues"
-"Changelog" = "https://github.com/juanmanueldaza/n3rv/releases"
+Homepage = "https://github.com/reverberage/n3rverberage"
+Repository = "https://github.com/reverberage/n3rverberage"
+"Bug Tracker" = "https://github.com/reverberage/n3rverberage/issues"
+"Changelog" = "https://github.com/reverberage/n3rverberage/releases"
 
 [build-system]
-requires = ["uv_build>=0.8.11,<0.12.0"]
-build-backend = "uv_build"
+requires = ["hatchling>=1.18.0"]
+build-backend = "hatchling.build"
 
-[dependency-groups]
+[tool.hatch.build.targets.wheel]
+packages = ["src/n3rverberage"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src"]
+
+[project.optional-dependencies]
 dev = [
-    "pytest>=9.0.3",
-    "pytest-asyncio>=1.3.0",
-    "ruff>=0.11.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.6.0",
 ]
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]

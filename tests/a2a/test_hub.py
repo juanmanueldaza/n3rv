@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from aiohttp.test_utils import TestClient, TestServer
 
-from n3rv.a2a.hub import A2AHub
+from n3rverberage.a2a.hub import A2AHub
 
 
 async def build_client(runtime_settings) -> TestClient:
@@ -21,7 +21,7 @@ async def test_serves_agent_cards(runtime_settings) -> None:
         payload = await response.json()
 
         assert response.status == 200
-        assert payload["name"] == "n3rv-hub"
+        assert payload["name"] == "n3rverberage-hub"
         assert payload["capabilities"] == {"streaming": True}
         assert "authentication" not in payload
         child = await client.get("/agents/opencode/agent.json")

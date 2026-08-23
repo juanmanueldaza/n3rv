@@ -1,152 +1,84 @@
-```
-█████████████████████████████████████████████████████████
+# n3rverberage
 
-██    ██  ███████  ████████  ██     ██
-███   ██ ██     ██ ██     ██ ██     ██
-████  ██        ██ ██     ██ ██     ██
-██ ██ ██  ███████  ████████  ██     ██
-██  ████        ██ ██   ██    ██   ██
-██   ███ ██     ██ ██    ██    ██ ██
-██    ██  ███████  ██     ██    ███
+**Invisible engineering infrastructure for opencode agents.**
 
-  Because an angel without a harness is unmanageable.
-  And a harness without an angel is just expensive metal.
-
-█████████████████████████████████████████████████████████
-```
-
-![PyPI](https://img.shields.io/pypi/v/n3rv?style=flat-square)
-![PyPI Downloads](https://img.shields.io/pypi/dm/n3rv?style=flat-square)
-![License](https://img.shields.io/github/license/juanmanueldaza/n3rv?style=flat-square)
-![GitHub stars](https://img.shields.io/github/stars/juanmanueldaza/n3rv?style=flat-square)
-
-`n3rv` is an open-source engineering harness designed to contain, restrain, and orchestrate Large Language Models (LLMs). Instead of treating agents as independent chatbots, N3RV builds a rigid operational framework — handling tools, dual-store memory, and real-time project context injection. Integrates natively with opencode via MCP servers, agent skills, slash commands, and sub-agents.
-
-[Architecture](docs/ARCHITECTURE.md) • [SDD Workflow](docs/SDD-WORKFLOW.md) • [MCP Tools](docs/MCP-TOOLS.md) • [Deployment](docs/DEPLOYMENT.md) • [Evangelion](EVANGELION.md) • [Security](SECURITY.md) • [Contributing](CONTRIBUTING.md)
+Forked from [n3rv](https://github.com/juanmanueldaza/n3rv). Relicensed Apache-2.0.
+Maintained by [reverberage](https://github.com/reverberage).
 
 ---
 
-## ⚡ Core Architecture
+## What This Is
 
-The base model is the Angel: raw, uncontained, and unpredictable. N3RV is the restraint harness that binds it to your local development environment.
+n3rverberage is a runtime library and config generator for [opencode](https://github.com/opencode-ai/opencode).
+It bootstraps an opencode workspace with agent skills, MCP servers (memory, task delegation),
+and provider abstraction for LLM APIs. Satellites use it at runtime for provider resolution.
 
-*   **MAGI Consensus Architecture:** Dual-layer memory routing utilizing **ChromaDB** for semantic long-term retrieval and **SQLite** for rigid ACID-compliant session state tracking (verdicts, relations).
-*   **LCL Project Injection:** Automatic parsing of environment manifests (`pyproject.toml`, `package.json`). The agent "breathes" your project architecture from session one.
-*   **14 Synchronized Agent Skills (The EVAs):** Specialized skill files for distinct phases of the software development lifecycle — code, testing, commits, GitHub ops, git ops, SDD (explore → propose → spec → design → tasks → apply → verify → archive), judgment-day review.
-*   **10 Sub-Agents:** Dedicated agent configs for each SDD phase + git-ops + github-ops, isolated by responsibility.
-*   **MCP Protocol Integration:** 5 native MCP servers — n3rv-memory (semantic + relational memory), n3rv-hub (A2A task delegation), GitHub wrapper, Context7 contextual search, sequential-thinking.
+**It is NOT a satellite.** It's the harness satellites plug into.
 
----
+## Relation to Hub
 
-## 🚀 Synchronization Sequence
+| Repo | Role |
+|------|------|
+| `reverberage/n3rverberage` | Runtime engine: providers, A2A hub, memory, daemon, CLI, init |
+| `reverberage/hub` | Contracts: satellite protocol, specs, roadmap, scaffold scripts |
 
-Initialize the harness inside your local repository:
+Both are Apache-2.0. Hub ships the spec; this repo ships the implementation.
+
+## Quick Start
 
 ```bash
-pip install n3rv                          # from PyPI
-pip install git+https://github.com/juanmanueldaza/n3rv.git  # from source (latest)
+pip install git+https://github.com/reverberage/n3rverberage.git
 cd your-project
-n3rv init
+n3rverberage init
 ```
 
-Or install and run in one shot:
+This generates: `AGENTS.md`, `opencode.json`, `.opencode/` (skills, agents, commands, plugins),
+`.n3rverberage/` (memory, hub config), `.githooks/`.
+
+## CLI
+
+```
+n3rverberage init [--stack python|node|go|generic] [--force]
+n3rverberage update [--dry-run] [--force-commands]
+n3rverberage hub start
+n3rverberage daemon install|start|stop|status|enable|logs
+n3rverberage memory list|search|prune|stats
+n3rverberage org init|list|add|remove|protect
+```
+
+## Capabilities
+
+- **Provider abstraction** — `ModelProvider` Protocol + `get_provider()` factory.
+  Supports Qwen (DashScope), OpenAI, and local (Ollama/vLLM). Satellites resolve
+  providers at runtime without hardcoding model IDs or API keys.
+- **A2A Hub** — Cross-process agent-to-agent task delegation via HTTP
+  (`127.0.0.1:19820`). Routes by `skill_id`, persists to JSON files.
+- **MAGI Memory** — Dual-store: ChromaDB for semantic vector search, SQLite for
+  relations. Persists SDD artifacts, session summaries, agent verdicts.
+- **MCP Servers** — `n3rverberage-memory` (MCP stdio server for memory ops),
+  `n3rverberage-hub` (MCP stdio server for A2A task delegation).
+- **Config Generation** — Jinja2-templated generation of AGENTS.md, opencode.json,
+  skills, commands, agents, plugins, git hooks.
+- **Org Mode** — Multi-project workspace management with shared skills and GitHub
+  branch protection.
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DASHSCOPE_API_KEY` | — | Qwen/DashScope API key |
+| `OPENAI_API_KEY` | — | OpenAI API key |
+| `N3RVERBERAGE_PROVIDER` | `qwen` | Active provider: `qwen`, `openai`, `local` |
+| `N3RVERBERAGE_DEFAULT_MODEL` | `qwen3-coder-plus` | Default model ID |
+| `N3RVERBERAGE_DEFAULT_BASE_URL` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | Default API base URL |
+
+## Running Tests
 
 ```bash
-pip install git+https://github.com/juanmanueldaza/n3rv.git && n3rv init
+pip install -e ".[dev]"
+pytest
 ```
 
-`n3rv init` provisions your workspace with:
+## License
 
-```
-📂 Project root
-├── 📄 AGENTS.md              # Coding standards with LCL-injected project context
-├── 📄 opencode.json          # opencode config: MCP servers, agents, instructions
-├── 📄 CONTRIBUTING.md
-├── 📄 SECURITY.md
-├── 📂 .opencode/
-│   ├── 📂 skills/            # 14 skills (code, testing, commits, SDD phases, etc.)
-│   ├── 📂 agents/            # 10 sub-agents (SDD phases + git-ops + github-ops)
-│   ├── 📂 commands/          # 4 slash commands (sdd-new, judgment-day, review, handoff)
-│   ├── 📂 plugins/           # lifecycle & shell-env plugins
-│   └── 📂 scripts/           # MCP wrapper scripts
-├── 📂 .n3rv/
-│   ├── 📄 a2a-config.yaml    # Agent-to-Agent hub configuration
-│   ├── 📄 skill-registry.md  # Auto-generated skill index
-│   ├── 📂 memory/            # ChromaDB + SQLite (MAGI storage)
-│   └── 📂 systemd/           # Background service unit
-└── 📂 .githooks/
-    └── 📄 pre-push            # Git pre-push hook
-```
-
----
-
-## 🛠️ Usage
-
-```bash
-n3rv init [--stack python|node|go|generic] [--force]
-n3rv update [--dry-run] [--force-commands]
-n3rv hub start                          # foreground A2A hub (development)
-n3rv daemon install|start|stop|status|enable|logs   # background service
-n3rv memory list|search|prune|stats     # MAGI memory operations
-```
-
-### MCP Servers (auto-configured in opencode.json)
-
-| Server | Purpose |
-|--------|---------|
-| `n3rv-memory` | ChromaDB + SQLite dual-store memory |
-| `n3rv-hub` | A2A task delegation (JSON-RPC 2.0) |
-| `github` | GitHub API via MCP |
-| `context7` | Contextual search across codebase |
-| `sequential-thinking` | Chain-of-thought reasoning |
-
----
-
-## 🧠 Memory: The MAGI
-
-Dual-store persistent memory:
-
-- **ChromaDB** — Vector embeddings for semantic long-term recall
-- **SQLite** — Relations between memories (judgments, revisions, verdicts)
-
-Memory types: `architecture`, `bugfix`, `config`, `decision`, `discovery`, `learning`, `pattern`, `context`, `summary`, `note`.
-
-Scopes: `project` (shared), `session` (current), `personal` (agent-specific).
-
----
-
-## 📋 SDD Workflow
-
-8-phase Spec-Driven Development pipeline, started via `/sdd-new <change>`:
-
-```
-explore → propose → spec → design → tasks → apply → verify → archive
-```
-
-Each phase is a dedicated skill + sub-agent. Phases write to persistent memory with `topic_key: sdd-<change_id>-<phase>`.
-
----
-
-## 🗺️ Project Status
-
-N3RV is currently under active development, built in public. We are testing restraint stability and optimizing context-delivery pipelines.
-
-**Install or update:**
-
-```bash
-pip install --force-reinstall n3rv      # latest from PyPI
-# or from source:
-pip install --force-reinstall git+https://github.com/juanmanueldaza/n3rv.git
-```
-
----
-
-## 📄 License
-
-Distributed under the **GNU General Public License v2.0 (GPL-2.0)**. N3RV is copyleft software — keeping the armor open ensures the angels stay contained.
-
----
-
-<p align="center">
-  <b>God's in his heaven. All's right with the world.</b>
-</p>
+Apache-2.0. Upstream (juanmanueldaza/n3rv) is GPL-2.0.

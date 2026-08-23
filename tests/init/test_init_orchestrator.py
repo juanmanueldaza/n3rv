@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from n3rv.init import run_init
+from n3rverberage.init import run_init
 
 
 def test_init_in_empty_project_creates_all_files(tmp_path: Path):
@@ -17,7 +17,7 @@ def test_init_in_empty_project_creates_all_files(tmp_path: Path):
     assert exit_code == 0
 
     expected_files = [
-        ".n3rv/a2a-config.yaml",
+        ".n3rverberage/a2a-config.yaml",
         "AGENTS.md",
         "opencode.json",
         ".githooks/pre-push",
@@ -38,7 +38,7 @@ def test_init_rerun_without_force_skips_files(tmp_path: Path):
 
     run_init(tmp_path, project_name=None, stack_override=None, force=False)
 
-    config = tmp_path / ".n3rv/a2a-config.yaml"
+    config = tmp_path / ".n3rverberage/a2a-config.yaml"
     original_content = config.read_text()
     config.write_text("# Modified\n" + original_content)
 
@@ -74,7 +74,7 @@ def test_init_with_explicit_project_name_and_stack(tmp_path: Path):
 
     assert exit_code == 0
 
-    config = tmp_path / ".n3rv/a2a-config.yaml"
+    config = tmp_path / ".n3rverberage/a2a-config.yaml"
     content = config.read_text()
     assert "project: myapp" in content
     assert "port: 19820" in content

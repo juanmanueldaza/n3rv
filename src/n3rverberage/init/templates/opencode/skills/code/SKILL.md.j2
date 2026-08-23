@@ -1,0 +1,114 @@
+---
+name: code
+description: "Python language standards: type hints, error handling, logging, and style conventions."
+compatibility: opencode
+when_to_use: "When writing or reviewing *.py source files."
+user-invocable: false
+hub-skill-ids: [implementation, review, refactoring]
+---
+
+# Skill: Python
+
+## Rules
+
+REJECT if:
+- Missing type hints on public functions or methods
+- Bare `except:` without a specific exception type
+- `print()` used in production code (use `logging` instead)
+- Mutable default arguments (e.g., `def f(x=[]):`)
+
+REQUIRE:
+- `from __future__ import annotations` in all modules
+- Type hints on all public functions and class attributes
+- Pydantic v2 for data validation models
+
+PREFER:
+- Early returns over deeply nested conditionals
+- `pathlib.Path` over `os.path` for filesystem operations
+- Dataclasses or Pydantic over raw dicts for structured data
+
+## reverberage Satellite Patterns
+
+When working on a reverberage satellite project:
+
+### Package Structure
+```
+my-satellite/
+├── src/my_satellite/
+│   ├── __init__.py
+│   ├── cli.py          # Typer CLI entry point
+│   ├── models.py       # Pydantic v2 data models
+│   └── server.py       # MCP server (optional)
+├── tests/
+│   ├── conftest.py     # Shared fixtures (CliRunner, MCP mocks)
+│   └── test_cli.py
+├── pyproject.toml      # hatchling build backend
+└── README.md
+```
+
+### CLI (Typer)
+```python
+import typer
+from typing_extensions import Annotated
+
+app = typer.Typer()
+
+@app.command()
+def main(
+    name: Annotated[str, typer.Argument(help="Your name")],
+    loud: Annotated[bool, typer.Option("--loud", "-l", help="Shout it")] = False,
+) -> None:
+    """Greet someone."""
+    msg = f"Hello, {name}!"
+    print(msg.upper() if loud else msg)
+
+if __name__ == "__main__":
+    app()
+```
+
+### Models (Pydantic v2)
+```python
+from pydantic import BaseModel, Field
+
+class SatelliteConfig(BaseModel):
+    name: str = Field(..., description="Satellite name")
+    version: str = Field(default="0.1.0")
+    enabled: bool = True
+```
+
+### MCP Server (optional)
+```python
+from mcp.server import FastMCP
+
+mcp = FastMCP("my-satellite")
+
+@mcp.tool()
+def my_tool(query: str) -> str:
+    """Process a query."""
+    return f"Processed: {query}"
+
+def main() -> None:
+    mcp.run()
+```
+
+### A2A Agent Registration
+```python
+class MyAgent:
+    skill_id: str = "my-skill"
+    description: str = "Does X and Y"
+
+    async def handle_task(self, task: dict) -> dict:
+        # Process task from N3RVERBERAGE hub
+        return {"result": "done"}
+```
+
+{% if profile_has_frameworks %}
+## Detected Framework Conventions
+
+{% for fw in profile_frameworks %}
+### {{ fw.name }}
+
+{{ fw.guidance }}
+
+{% endfor %}
+{% endif %}

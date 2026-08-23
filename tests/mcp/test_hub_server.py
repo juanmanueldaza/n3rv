@@ -2,23 +2,23 @@ from __future__ import annotations
 
 import pytest
 
-from n3rv.mcp import hub_server
+from n3rverberage.mcp import hub_server
 
 
 def test_resolve_agent_ids_uses_current_agent_aliases(monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_AGENT_SOURCE", "opencode")
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "opencode")
 
     assert hub_server._resolve_agent_ids() == ["opencode"]
 
 
 def test_resolve_agent_ids_defaults_to_opencode_without_env(monkeypatch) -> None:
-    monkeypatch.delenv("N3RV_AGENT_SOURCE", raising=False)
+    monkeypatch.delenv("N3RVERBERAGE_AGENT_SOURCE", raising=False)
 
     assert hub_server._resolve_agent_ids() == ["opencode"]
 
 
 def test_resolve_agent_ids_raises_on_empty_source(monkeypatch) -> None:
-    monkeypatch.setenv("N3RV_AGENT_SOURCE", "")
+    monkeypatch.setenv("N3RVERBERAGE_AGENT_SOURCE", "")
 
     with pytest.raises(ValueError, match="agent_id is required"):
         hub_server._resolve_agent_ids()

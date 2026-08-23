@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from n3rv.init.registry import (
+from n3rverberage.init.registry import (
     SkillEntry,
     SkillRegistry,
     _parse_frontmatter,
@@ -194,6 +194,97 @@ def test_to_markdown_truncates_long_descriptions():
 
 
 # --------------------------------------------------------------------------- #
+# Dual-path scan (org-level)
+# --------------------------------------------------------------------------- #
+
+
+def test_scan_with_shared_skills(tmp_path: Path):
+    """When org_root is provided, shared skills are loaded alongside local."""
+    # Shared skill
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/shared/skills/shared-code",
+        "---\nname: shared-code\ndescription: Shared coding skill\n---\n",
+    )
+    # Local skill
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/skills/local-code",
+        "---\nname: local-code\ndescription: Local coding skill\n---\n",
+    )
+    registry = SkillRegistry.scan(tmp_path, org_root=tmp_path)
+    assert len(registry.entries) == 2
+    names = {e.name: e.origin for e in registry.entries}
+    assert names["shared-code"] == "shared"
+    assert names["local-code"] == "local"
+
+
+def test_scan_local_overrides_shared_by_name(tmp_path: Path):
+    """When a local skill has the same name as a shared one, local wins."""
+    # Shared skill
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/shared/skills/dup-skill",
+        "---\nname: dup-skill\ndescription: Shared version\n---\n",
+    )
+    # Local skill with same name
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/skills/dup-skill",
+        "---\nname: dup-skill\ndescription: Local version\n---\n",
+    )
+    registry = SkillRegistry.scan(tmp_path, org_root=tmp_path)
+    assert len(registry.entries) == 1
+    assert registry.entries[0].description == "Local version"
+    assert registry.entries[0].origin == "local"
+
+
+def test_scan_without_org_root_is_backward_compat(tmp_path: Path):
+    """Scan without org_root does NOT load shared skills."""
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/shared/skills/shared-code",
+        "---\nname: shared-code\ndescription: Shared\n---\n",
+    )
+    registry = SkillRegistry.scan(tmp_path)
+    # Shared dir is NOT under .opencode/skills/, so it's ignored
+    assert len(registry.entries) == 0
+
+
+def test_scan_shared_skills_dir_not_found(tmp_path: Path):
+    """When shared dir doesn't exist, scan proceeds with local only."""
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/skills/local-code",
+        "---\nname: local-code\ndescription: Local\n---\n",
+    )
+    registry = SkillRegistry.scan(tmp_path, org_root=tmp_path)
+    assert len(registry.entries) == 1
+    assert registry.entries[0].name == "local-code"
+
+
+def test_write_registry_with_org_root(tmp_path: Path):
+    """write_registry passes org_root through to scan."""
+    _make_skill_dir(
+        tmp_path,
+        ".opencode/shared/skills/shared-code",
+        "---\nname: shared-code\ndescription: Shared\n---\n",
+    )
+    out = write_registry(tmp_path, org_root=tmp_path)
+    content = out.read_text()
+    assert "shared" in content.lower()
+    assert "Origin" in content
+
+
+def test_scan_origin_field_present(tmp_path: Path):
+    """Every scanned entry has an origin field."""
+    _make_skill_dir(tmp_path, ".opencode/skills/test-skill", SKILL_CONTENT)
+    registry = SkillRegistry.scan(tmp_path)
+    assert len(registry.entries) == 1
+    assert registry.entries[0].origin == "local"
+
+
+# --------------------------------------------------------------------------- #
 # write_registry
 # --------------------------------------------------------------------------- #
 
@@ -203,7 +294,7 @@ def test_write_registry_creates_file(tmp_path: Path):
     out = write_registry(tmp_path)
     assert out.exists()
     assert out.name == "skill-registry.md"
-    assert out.parent.name == ".n3rv"
+    assert out.parent.name == ".n3rverberage"
     content = out.read_text()
     assert "test-skill" in content
 

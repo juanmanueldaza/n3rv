@@ -1,0 +1,15 @@
+[Unit]
+Description=N3RVERBERAGE A2A Hub for {{ project_name }}
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{ project_root }}
+ExecStart={{ n3rverberage_binary }} hub start
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:{{ project_root }}/.n3rverberage/logs/hub.log
+StandardError=append:{{ project_root }}/.n3rverberage/logs/hub.log
+
+[Install]
+WantedBy=default.target

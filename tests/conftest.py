@@ -5,7 +5,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
 
-from n3rv.config import RuntimePaths, RuntimeSettings, load_runtime_settings
+from n3rverberage.config import RuntimePaths, RuntimeSettings, load_runtime_settings
 
 
 @pytest.fixture
@@ -25,22 +25,22 @@ def runtime_settings(project_root: Path) -> RuntimeSettings:
 def temp_settings(tmp_path: Path) -> RuntimeSettings:
     paths = RuntimePaths(
         project_root=tmp_path,
-        memory_dir=tmp_path / ".n3rv" / "memory",
-        n3rv_dir=tmp_path / ".n3rv",
-        hub_state_dir=tmp_path / ".n3rv" / "hub-state",
-        logs_dir=tmp_path / ".n3rv" / "logs",
+        memory_dir=tmp_path / ".n3rverberage" / "memory",
+        n3rverberage_dir=tmp_path / ".n3rverberage",
+        hub_state_dir=tmp_path / ".n3rverberage" / "hub-state",
+        logs_dir=tmp_path / ".n3rverberage" / "logs",
     )
     return RuntimeSettings(paths=paths)
 
 
 @pytest.fixture
 def windows_style_path(project_root: Path) -> PureWindowsPath:
-    return PureWindowsPath("C:/workspace") / project_root.name / "src" / "n3rv"
+    return PureWindowsPath("C:/workspace") / project_root.name / "src" / "n3rverberage"
 
 
 @pytest.fixture
 def linux_style_path(project_root: Path) -> PurePosixPath:
-    return PurePosixPath("/") / "workspace" / project_root.name / "src" / "n3rv"
+    return PurePosixPath("/") / "workspace" / project_root.name / "src" / "n3rverberage"
 
 
 @pytest.fixture

@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from n3rv.a2a.hub import A2AHub
-from n3rv.config import RuntimePaths, RuntimeSettings
-from n3rv.models.a2a import TaskState
+from n3rverberage.a2a.hub import A2AHub
+from n3rverberage.config import RuntimePaths, RuntimeSettings
+from n3rverberage.models.a2a import TaskState
 
 
 @pytest.fixture

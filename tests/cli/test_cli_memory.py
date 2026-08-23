@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 from typer.testing import CliRunner
 
-from n3rv.cli import app
+from n3rverberage.cli import app
 
 runner = CliRunner()
 
@@ -45,8 +45,8 @@ def test_memory_list_displays_filtered_memories() -> None:
     }
 
     with (
-        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
-        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+        patch("n3rverberage.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rverberage.cli_memory.MemoryService", return_value=mock_service),
     ):
         result = runner.invoke(
             app,
@@ -74,8 +74,8 @@ def test_memory_list_shows_empty_message() -> None:
     mock_service.memory_context.return_value = {"count": 0, "memories": []}
 
     with (
-        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
-        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+        patch("n3rverberage.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rverberage.cli_memory.MemoryService", return_value=mock_service),
     ):
         result = runner.invoke(app, ["memory", "list"])
 
@@ -99,8 +99,8 @@ def test_memory_search_displays_results() -> None:
     }
 
     with (
-        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
-        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+        patch("n3rverberage.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rverberage.cli_memory.MemoryService", return_value=mock_service),
     ):
         result = runner.invoke(
             app,
@@ -138,8 +138,8 @@ def test_memory_stats_displays_sections() -> None:
     }
 
     with (
-        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
-        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+        patch("n3rverberage.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rverberage.cli_memory.MemoryService", return_value=mock_service),
     ):
         result = runner.invoke(app, ["memory", "stats"])
 
@@ -155,8 +155,8 @@ def test_memory_command_handles_store_errors() -> None:
     mock_service.memory_context.side_effect = RuntimeError("memory unavailable")
 
     with (
-        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
-        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+        patch("n3rverberage.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rverberage.cli_memory.MemoryService", return_value=mock_service),
     ):
         result = runner.invoke(app, ["memory", "list"])
 

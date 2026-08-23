@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from n3rv.init import run_init
-from n3rv.init.update import run_update
+from n3rverberage.init import run_init
+from n3rverberage.init.update import run_update
 
 
 def _write_fastapi_pyproject(root: Path) -> None:
@@ -65,7 +65,7 @@ class TestInit:
         _write_fastapi_pyproject(tmp_path)
         run_init(tmp_path, project_name=None, stack_override=None, force=True)
 
-        n3rv_agent = tmp_path / ".opencode" / "agents" / "n3rv.md"
+        n3rv_agent = tmp_path / ".opencode" / "agents" / "n3rverberage.md"
         assert n3rv_agent.exists()
         agent_content = n3rv_agent.read_text(encoding="utf-8")
         assert "mode: primary" in agent_content
@@ -133,8 +133,8 @@ class TestInit:
         _write_fastapi_pyproject(tmp_path)
         run_init(tmp_path, project_name=None, stack_override=None, force=True)
 
-        lifecycle = tmp_path / ".opencode" / "plugins" / "n3rv-lifecycle.js"
-        shell_env = tmp_path / ".opencode" / "plugins" / "n3rv-shell-env.js"
+        lifecycle = tmp_path / ".opencode" / "plugins" / "n3rverberage-lifecycle.js"
+        shell_env = tmp_path / ".opencode" / "plugins" / "n3rverberage-shell-env.js"
         assert lifecycle.is_file(), f"Missing {lifecycle}"
         assert shell_env.is_file(), f"Missing {shell_env}"
 
@@ -145,39 +145,33 @@ class TestInit:
 
         se_content = shell_env.read_text(encoding="utf-8")
         assert "NervShellEnv" in se_content
-        assert "opencode:n3rv" in se_content
+        assert "opencode:n3rverberage" in se_content
 
     def test_tools_scaffolded_on_init(self, tmp_path: Path) -> None:
         _write_fastapi_pyproject(tmp_path)
         run_init(tmp_path, project_name=None, stack_override=None, force=True)
 
-        stats_ts = tmp_path / ".opencode" / "tools" / "n3rv-stats.ts"
+        stats_ts = tmp_path / ".opencode" / "tools" / "n3rverberage-stats.ts"
         package_json = tmp_path / ".opencode" / "package.json"
         assert stats_ts.is_file(), f"Missing {stats_ts}"
         assert package_json.is_file(), f"Missing {package_json}"
 
         ts_content = stats_ts.read_text(encoding="utf-8")
-        assert "n3rv_memory_stats" in ts_content
-        assert "n3rv_hub_health" in ts_content
-        assert "n3rv_check_pending_tasks" in ts_content
+        assert "n3rverberage_memory_stats" in ts_content
+        assert "n3rverberage_hub_health" in ts_content
+        assert "n3rverberage_check_pending_tasks" in ts_content
 
         pkg_content = package_json.read_text(encoding="utf-8")
         assert "@opencode-ai/plugin" in pkg_content
 
-    def test_docs_scaffolded_on_init(self, tmp_path: Path) -> None:
+    def test_docs_not_scaffolded_on_init(self, tmp_path: Path) -> None:
         _write_fastapi_pyproject(tmp_path)
         run_init(tmp_path, project_name=None, stack_override=None, force=True)
 
         contributing = tmp_path / "CONTRIBUTING.md"
         security = tmp_path / "SECURITY.md"
-        assert contributing.is_file(), f"Missing {contributing}"
-        assert security.is_file(), f"Missing {security}"
-
-        contrib_content = contributing.read_text(encoding="utf-8")
-        assert "AGENTS.md" in contrib_content
-
-        sec_content = security.read_text(encoding="utf-8")
-        assert "trusted local environment" in sec_content or "127.0.0.1" in sec_content
+        assert not contributing.is_file(), f"CONTRIBUTING.md should not be generated: {contributing}"
+        assert not security.is_file(), f"SECURITY.md should not be generated: {security}"
 
     def test_opencode_json_has_new_keys(self, tmp_path: Path) -> None:
         _write_fastapi_pyproject(tmp_path)
@@ -191,8 +185,8 @@ class TestInit:
 
         assert "plugin" in data
         assert len(data["plugin"]) >= 2
-        assert any("n3rv-lifecycle" in p for p in data["plugin"])
-        assert any("n3rv-shell-env" in p for p in data["plugin"])
+        assert any("n3rverberage-lifecycle" in p for p in data["plugin"])
+        assert any("n3rverberage-shell-env" in p for p in data["plugin"])
 
         instructions = data.get("instructions", [])
         assert "AGENTS.md" in instructions
@@ -238,7 +232,7 @@ class TestUpdate:
         _write_fastapi_pyproject(tmp_path)
         run_init(tmp_path, project_name=None, stack_override=None, force=True)
 
-        n3rv_agent = tmp_path / ".opencode" / "agents" / "n3rv.md"
+        n3rv_agent = tmp_path / ".opencode" / "agents" / "n3rverberage.md"
         n3rv_agent.unlink()
         assert not n3rv_agent.exists()
 

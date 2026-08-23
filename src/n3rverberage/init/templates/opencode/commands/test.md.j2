@@ -1,0 +1,16 @@
+---
+description: Run tests using the project test runner
+agent: n3rverberage
+subtask: true
+---
+Run the test suite for this project.
+
+{% for t in profile_tools %}
+{% if t.category == 'testing' %}
+Test command: `{{ t.command }}`
+
+Execute: `!{{ t.command }}`
+{% endif %}
+{% endfor %}
+
+Based on the test results, report any failures and suggest fixes if needed.
