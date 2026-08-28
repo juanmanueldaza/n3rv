@@ -78,9 +78,9 @@ class SatelliteConfig(BaseModel):
 
 ### MCP Server (optional)
 ```python
-from mcp.server import FastMCP
+from mcp.server.mcpserver import MCPServer
 
-mcp = FastMCP("my-satellite")
+mcp = MCPServer("my-satellite")
 
 @mcp.tool()
 def my_tool(query: str) -> str:
