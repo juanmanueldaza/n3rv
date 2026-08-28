@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import fnmatch
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -12,7 +13,7 @@ from n3rv.mcp.code_graph_store import CodeGraphStore
 
 logger = logging.getLogger("n3rv.mcp.code_graph")
 
-_SKIP_DIRS = frozenset(
+_SKIP_DIRS_LITERAL = frozenset(
     {
         "__pycache__",
         ".git",
@@ -23,9 +24,19 @@ _SKIP_DIRS = frozenset(
         "node_modules",
         ".tox",
         ".eggs",
-        "*.egg-info",
     }
 )
+_SKIP_DIRS_GLOBS = ("*.egg-info",)
+
+
+def _should_skip(rel_parts: tuple[str, ...]) -> bool:
+    for part in rel_parts:
+        if part in _SKIP_DIRS_LITERAL:
+            return True
+        for pat in _SKIP_DIRS_GLOBS:
+            if fnmatch.fnmatch(part, pat):
+                return True
+    return False
 
 
 @dataclass
@@ -85,76 +96,87 @@ def _extract_args(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
 
 
 def _extract_symbols(tree: ast.Module, file_path: str) -> list[dict]:
-    """Extract all symbol definitions from an AST."""
+    """Extract all symbol definitions from an AST, including nested decls."""
     symbols: list[dict] = []
 
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            decorators = [d for d in node.decorator_list]
-            kind = "decorated" if decorators else "function"
-            symbols.append(
-                {
-                    "file_path": file_path,
-                    "name": node.name,
-                    "kind": kind,
-                    "line": node.lineno,
-                    "end_line": getattr(node, "end_lineno", None),
-                    "parent": None,
-                    "docstring": _get_docstring(node),
-                    "args": _extract_args(node),
-                }
-            )
-
-            # Methods inside classes — handled by walking ClassDef children
-        elif isinstance(node, ast.ClassDef):
-            decorators = [d for d in node.decorator_list]
-            kind = "decorated" if decorators else "class"
-            symbols.append(
-                {
-                    "file_path": file_path,
-                    "name": node.name,
-                    "kind": kind,
-                    "line": node.lineno,
-                    "end_line": getattr(node, "end_lineno", None),
-                    "parent": None,
-                    "docstring": _get_docstring(node),
-                    "args": None,
-                }
-            )
-
-            # Extract methods
-            for item in ast.iter_child_nodes(node):
-                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    item_decorators = [d for d in item.decorator_list]
-                    method_kind = "decorated" if item_decorators else "method"
-                    symbols.append(
-                        {
-                            "file_path": file_path,
-                            "name": item.name,
-                            "kind": method_kind,
-                            "line": item.lineno,
-                            "end_line": getattr(item, "end_lineno", None),
-                            "parent": node.name,
-                            "docstring": _get_docstring(item),
-                            "args": _extract_args(item),
-                        }
-                    )
-        elif isinstance(node, ast.Assign):
-            for target in node.targets:
+    def _walk(node: ast.AST, parent: str | None) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                decorators = getattr(child, "decorator_list", [])
+                # Determine kind: decorated vs function/method depending on parent
+                if decorators:
+                    kind = "decorated"
+                elif parent is not None:
+                    # Inside a class -> method, otherwise nested function
+                    kind = "method"
+                else:
+                    kind = "function"
+                symbols.append(
+                    {
+                        "file_path": file_path,
+                        "name": child.name,
+                        "kind": kind,
+                        "line": child.lineno,
+                        "end_line": getattr(child, "end_lineno", None),
+                        "parent": parent,
+                        "docstring": _get_docstring(child),
+                        "args": _extract_args(child),
+                    }
+                )
+                # Recurse: nested functions/classes inside this function
+                _walk(child, child.name)
+            elif isinstance(child, ast.ClassDef):
+                decorators = getattr(child, "decorator_list", [])
+                kind = "decorated" if decorators else "class"
+                symbols.append(
+                    {
+                        "file_path": file_path,
+                        "name": child.name,
+                        "kind": kind,
+                        "line": child.lineno,
+                        "end_line": getattr(child, "end_lineno", None),
+                        "parent": parent,
+                        "docstring": _get_docstring(child),
+                        "args": None,
+                    }
+                )
+                _walk(child, child.name)
+            elif isinstance(child, ast.Assign):
+                for target in child.targets:
+                    if isinstance(target, ast.Name):
+                        symbols.append(
+                            {
+                                "file_path": file_path,
+                                "name": target.id,
+                                "kind": "variable",
+                                "line": child.lineno,
+                                "end_line": getattr(child, "end_lineno", None),
+                                "parent": parent,
+                                "docstring": None,
+                                "args": None,
+                            }
+                        )
+                _walk(child, parent)
+            elif isinstance(child, ast.AnnAssign):
+                target = child.target
                 if isinstance(target, ast.Name):
                     symbols.append(
                         {
                             "file_path": file_path,
                             "name": target.id,
                             "kind": "variable",
-                            "line": node.lineno,
-                            "end_line": getattr(node, "end_lineno", None),
-                            "parent": None,
+                            "line": child.lineno,
+                            "end_line": getattr(child, "end_lineno", None),
+                            "parent": parent,
                             "docstring": None,
                             "args": None,
                         }
                     )
+                _walk(child, parent)
+            else:
+                _walk(child, parent)
 
+    _walk(tree, None)
     return symbols
 
 
@@ -188,7 +210,7 @@ def _extract_imports(tree: ast.Module, file_path: str) -> list[dict]:
     return imports
 
 
-def _extract_calls(tree: ast.Module, file_path: str) -> list[dict]:
+def _extract_calls(tree: ast.Module, file_path: str, source: str = "") -> list[dict]:
     """Extract all function/method call sites from an AST."""
     calls: list[dict] = []
 
@@ -196,10 +218,9 @@ def _extract_calls(tree: ast.Module, file_path: str) -> list[dict]:
         if isinstance(node, ast.Call):
             name = _resolve_call_name(node.func)
             if name:
-                # Get the source line for context
                 context = ""
                 try:
-                    context = ast.get_source_segment("", node) or ""
+                    context = ast.get_source_segment(source, node) or ""
                 except Exception:
                     pass
                 calls.append(
@@ -244,8 +265,11 @@ class CodeGraphService:
 
         for path in self.project_root.rglob("*.py"):
             # Skip excluded directories
-            parts = path.relative_to(self.project_root).parts
-            if any(part in _SKIP_DIRS for part in parts):
+            try:
+                parts = path.relative_to(self.project_root).parts
+            except ValueError:
+                continue
+            if _should_skip(parts):
                 continue
             files.append(path)
 
@@ -288,7 +312,7 @@ class CodeGraphService:
                 # Extract
                 symbols = _extract_symbols(tree, rel_path)
                 imports = _extract_imports(tree, rel_path)
-                calls = _extract_calls(tree, rel_path)
+                calls = _extract_calls(tree, rel_path, source)
 
                 # Store
                 self.store.clear_file(rel_path)

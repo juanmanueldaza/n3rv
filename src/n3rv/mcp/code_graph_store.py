@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import logging
 import sqlite3
@@ -57,21 +58,71 @@ CREATE INDEX IF NOT EXISTS idx_imports_file ON code_graph_imports(file_path);
 CREATE INDEX IF NOT EXISTS idx_imports_module ON code_graph_imports(module);
 """
 
+_FTS_SCHEMA = """
+CREATE VIRTUAL TABLE IF NOT EXISTS code_graph_fts USING fts5(
+    name, docstring, file_path,
+    content='code_graph_symbols',
+    content_rowid='id',
+    tokenize='porter unicode61'
+);
+"""
+
 
 class CodeGraphStore:
     """SQLite store for code graph data (symbols, imports, calls)."""
 
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
     def _init_db(self) -> None:
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(_SCHEMA)
+            # Enable WAL for concurrent read/write (watcher + MCP)
+            try:
+                conn.execute("PRAGMA journal_mode=WAL;")
+            except sqlite3.OperationalError:
+                pass
+            # Try to create FTS5 — fallback gracefully if SQLite built without FTS5
+            try:
+                conn.executescript(_FTS_SCHEMA)
+                # Triggers to keep FTS in sync
+                conn.executescript(
+                    "CREATE TRIGGER IF NOT EXISTS code_graph_symbols_ai "
+                    "AFTER INSERT ON code_graph_symbols BEGIN\n"
+                    "  INSERT INTO code_graph_fts(rowid, name, docstring, file_path) "
+                    "VALUES (new.id, new.name, new.docstring, new.file_path);\n"
+                    "END;\n"
+                    "CREATE TRIGGER IF NOT EXISTS code_graph_symbols_ad "
+                    "AFTER DELETE ON code_graph_symbols BEGIN\n"
+                    "  INSERT INTO code_graph_fts(code_graph_fts, rowid, name, docstring, file_path) "
+                    "VALUES ('delete', old.id, old.name, old.docstring, old.file_path);\n"
+                    "END;\n"
+                    "CREATE TRIGGER IF NOT EXISTS code_graph_symbols_au "
+                    "AFTER UPDATE ON code_graph_symbols BEGIN\n"
+                    "  INSERT INTO code_graph_fts(code_graph_fts, rowid, name, docstring, file_path) "
+                    "VALUES ('delete', old.id, old.name, old.docstring, old.file_path);\n"
+                    "  INSERT INTO code_graph_fts(rowid, name, docstring, file_path) "
+                    "VALUES (new.id, new.name, new.docstring, new.file_path);\n"
+                    "END;"
+                )
+            except sqlite3.OperationalError as exc:
+                logger.warning("FTS5 not available, falling back to LIKE queries: %s", exc)
             conn.commit()
 
     def _conn(self) -> sqlite3.Connection:
         return sqlite3.connect(self.db_path)
+
+    def _has_fts(self) -> bool:
+        try:
+            with self._conn() as conn:
+                row = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='code_graph_fts'"
+                ).fetchone()
+                return row is not None
+        except sqlite3.OperationalError:
+            return False
 
     # ── File tracking ──────────────────────────────────────────────
 
@@ -118,6 +169,20 @@ class CodeGraphStore:
             conn.execute("DELETE FROM code_graph_imports WHERE file_path = ?", (file_path,))
             conn.execute("DELETE FROM code_graph_calls WHERE file_path = ?", (file_path,))
             conn.commit()
+
+    def remove_stale_files(self, existing_files: set[str]) -> int:
+        """Remove DB entries for files that no longer exist on disk. Returns count removed."""
+        with self._conn() as conn:
+            rows = conn.execute("SELECT file_path FROM code_graph_files").fetchall()
+            stale = [r[0] for r in rows if r[0] not in existing_files]
+            for fp in stale:
+                conn.execute("DELETE FROM code_graph_symbols WHERE file_path = ?", (fp,))
+                conn.execute("DELETE FROM code_graph_imports WHERE file_path = ?", (fp,))
+                conn.execute("DELETE FROM code_graph_calls WHERE file_path = ?", (fp,))
+                conn.execute("DELETE FROM code_graph_files WHERE file_path = ?", (fp,))
+            if stale:
+                conn.commit()
+            return len(stale)
 
     # ── Batch inserts ──────────────────────────────────────────────
 
@@ -217,6 +282,106 @@ class CodeGraphStore:
             for r in rows
         ]
 
+    def search_fts(self, query: str, limit: int = 20) -> list[dict]:
+        """Full-text search over symbols. Falls back to LIKE if FTS5 unavailable.
+
+        Ranking: exact name match first, then FTS rank / LIKE order.
+        """
+        if not query or not query.strip():
+            return []
+
+        query = query.strip()
+        limit = max(1, min(limit, 100))
+
+        # Try FTS5
+        if self._has_fts():
+            try:
+                # Escape FTS5 special chars; use prefix matching for partial
+                fts_query = query.replace('"', '""')
+                # Try to match as phrase/prefix — fallback to simple LIKE if syntax error
+                with self._conn() as conn:
+                    rows = conn.execute(
+                        """
+                        SELECT s.file_path, s.name, s.kind, s.line, s.end_line, s.parent, s.docstring, s.args,
+                               rank
+                        FROM code_graph_symbols s
+                        JOIN code_graph_fts f ON s.id = f.rowid
+                        WHERE code_graph_fts MATCH ?
+                        ORDER BY rank
+                        LIMIT ?
+                        """,
+                        (fts_query, limit),
+                    ).fetchall()
+                if rows:
+                    # Boost exact name matches to top
+                    exact = [r for r in rows if r[1] == query]
+                    rest = [r for r in rows if r[1] != query]
+                    ranked = exact + rest
+                    return [
+                        {
+                            "file": r[0],
+                            "name": r[1],
+                            "kind": r[2],
+                            "line": r[3],
+                            "end_line": r[4],
+                            "parent": r[5],
+                            "docstring": r[6],
+                            "args": json.loads(r[7]) if r[7] else None,
+                            "rank": r[8],
+                        }
+                        for r in ranked
+                    ]
+            except sqlite3.OperationalError as exc:
+                logger.debug("FTS5 query failed, falling back to LIKE: %s", exc)
+
+        # Fallback: LIKE with exact first, prefix second, substring third
+        with self._conn() as conn:
+            # Exact
+            exact_rows = conn.execute(
+                "SELECT file_path, name, kind, line, end_line, parent, docstring, args "
+                "FROM code_graph_symbols WHERE name = ? ORDER BY file_path, line LIMIT ?",
+                (query, limit),
+            ).fetchall()
+            if len(exact_rows) >= limit:
+                rows = exact_rows[:limit]
+            else:
+                remaining = limit - len(exact_rows)
+                # Prefix + substring
+                like_rows = conn.execute(
+                    "SELECT file_path, name, kind, line, end_line, parent, docstring, args "
+                    "FROM code_graph_symbols WHERE name LIKE ? AND name != ? ORDER BY file_path, line LIMIT ?",
+                    (f"%{query}%", query, remaining),
+                ).fetchall()
+                rows = list(exact_rows) + list(like_rows)
+                # If still short, search docstring
+                if len(rows) < limit:
+                    remaining2 = limit - len(rows)
+                    doc_rows = conn.execute(
+                        "SELECT file_path, name, kind, line, end_line, parent, docstring, args "
+                        "FROM code_graph_symbols WHERE docstring LIKE ? ORDER BY file_path, line LIMIT ?",
+                        (f"%{query}%", remaining2),
+                    ).fetchall()
+                    # Avoid duplicates
+                    seen = {(r[0], r[1], r[3]) for r in rows}
+                    for r in doc_rows:
+                        if (r[0], r[1], r[3]) not in seen:
+                            rows.append(r)
+                            if len(rows) >= limit:
+                                break
+            return [
+                {
+                    "file": r[0],
+                    "name": r[1],
+                    "kind": r[2],
+                    "line": r[3],
+                    "end_line": r[4],
+                    "parent": r[5],
+                    "docstring": r[6],
+                    "args": json.loads(r[7]) if r[7] else None,
+                }
+                for r in rows
+            ]
+
     def query_references(self, name: str) -> list[dict]:
         """Find all call sites for a given name."""
         with self._conn() as conn:
@@ -225,6 +390,15 @@ class CodeGraphStore:
                 (name,),
             ).fetchall()
         return [{"file": r[0], "line": r[1], "context": r[2]} for r in rows]
+
+    def query_callees(self, file_path: str) -> list[dict]:
+        """Find what a file calls (outgoing edges)."""
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT name, line, context FROM code_graph_calls WHERE file_path = ? ORDER BY line",
+                (file_path,),
+            ).fetchall()
+        return [{"name": r[0], "line": r[1], "context": r[2]} for r in rows]
 
     def query_imports(self, file_path: str) -> dict:
         """Return import graph for a file: what it imports and what imports it."""
@@ -259,3 +433,39 @@ class CodeGraphStore:
         with self._conn() as conn:
             rows = conn.execute("SELECT file_path FROM code_graph_files ORDER BY file_path").fetchall()
         return [r[0] for r in rows]
+
+    def get_counts(self) -> dict:
+        """Return aggregate counts for status reporting."""
+        with self._conn() as conn:
+            files = conn.execute("SELECT COUNT(*) FROM code_graph_files").fetchone()[0]
+            symbols = conn.execute("SELECT COUNT(*) FROM code_graph_symbols").fetchone()[0]
+            imports = conn.execute("SELECT COUNT(*) FROM code_graph_imports").fetchone()[0]
+            calls = conn.execute("SELECT COUNT(*) FROM code_graph_calls").fetchone()[0]
+        return {"files": files, "symbols": symbols, "imports": imports, "calls": calls}
+
+    def rebuild_fts(self) -> None:
+        """Rebuild FTS index from symbols table (useful after bulk import or migration)."""
+        if not self._has_fts():
+            return
+        try:
+            with self._conn() as conn:
+                conn.execute("INSERT INTO code_graph_fts(code_graph_fts) VALUES('rebuild')")
+                conn.commit()
+        except sqlite3.OperationalError as exc:
+            logger.warning("Failed to rebuild FTS: %s", exc)
+
+    # Backwards compat helper for tests that used fnmatch on skip
+    @staticmethod
+    def _should_skip_path(rel_parts: tuple[str, ...]) -> bool:
+        """Check if a relative path should be skipped (handles *.egg-info via fnmatch)."""
+        skip_literal = frozenset(
+            {"__pycache__", ".git", ".venv", "venv", ".mypy_cache", ".ruff_cache", "node_modules", ".tox", ".eggs"}
+        )
+        skip_globs = ("*.egg-info",)
+        for part in rel_parts:
+            if part in skip_literal:
+                return True
+            for pat in skip_globs:
+                if fnmatch.fnmatch(part, pat):
+                    return True
+        return False
