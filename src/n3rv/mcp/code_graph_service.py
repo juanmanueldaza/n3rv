@@ -322,7 +322,6 @@ class CodeGraphService:
                 if calls:
                     self.store.insert_calls(calls)
                 self.store.upsert_file(rel_path, mtime, content_hash)
-
                 stats["files_indexed"] += 1
                 stats["symbols_found"] += len(symbols)
                 stats["imports_found"] += len(imports)
@@ -337,6 +336,15 @@ class CodeGraphService:
             except OSError as exc:
                 logger.warning("Error reading %s: %s", path, exc)
                 stats["errors"] += 1
+
+        # Update watcher's pending set to reflect current on-disk files
+        if hasattr(self, "_pending"):
+            with self._pending_lock:
+                current = {
+                    str(p.relative_to(self.project_root))
+                    for p in self._find_python_files()
+                }
+                self.pending.difference_update(current)
 
         logger.info(
             "Index complete: %d indexed, %d skipped, %d symbols, %d imports, %d calls, %d errors",
