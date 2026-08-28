@@ -6,7 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel
 
 from n3rv.config import RuntimePaths, RuntimeSettings, load_runtime_settings
@@ -64,13 +64,8 @@ def hub_rpc(hub_url: str, method: str, params: dict) -> dict:
     return data["result"]
 
 
-def build_mcp_server(name: str, instructions: str) -> FastMCP:
-    return FastMCP(
+def build_mcp_server(name: str, instructions: str) -> MCPServer:
+    return MCPServer(
         name=name,
         instructions=instructions,
-        dependencies=(),
-        debug=False,
-        log_level="INFO",
-        stateless_http=True,
-        json_response=True,
     )
