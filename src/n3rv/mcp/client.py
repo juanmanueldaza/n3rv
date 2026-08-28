@@ -4,11 +4,10 @@ import json
 import logging
 import os
 import sys
-from contextlib import AsyncExitStack
 from typing import Any
 
-from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp import Client
+from mcp.client.stdio import StdioServerParameters
 from mcp.types import CallToolResult, TextContent
 
 from n3rv.config import RuntimeSettings
@@ -46,12 +45,9 @@ class StdioMCPClient:
             cwd=self.settings.paths.project_root,
             env=_subprocess_env(),
         )
-        async with AsyncExitStack() as stack:
-            read_stream, write_stream = await stack.enter_async_context(stdio_client(params))
-            session = await stack.enter_async_context(ClientSession(read_stream, write_stream))
-            await session.initialize()
-            result = await session.call_tool(name, arguments or {})
-            if result.isError:
+        async with Client(params) as client:
+            result = await client.call_tool(name, arguments or {})
+            if getattr(result, "is_error", getattr(result, "isError", False)):
                 err = self._extract_error(result)
                 logger.error("mcp tool error module=%s tool=%s: %s", self.module_name, name, err)
                 raise MCPToolError(err)
@@ -59,8 +55,9 @@ class StdioMCPClient:
             return self._decode_result(result)
 
     def _decode_result(self, result: CallToolResult) -> Any:
-        if result.structuredContent is not None:
-            return result.structuredContent
+        structured = getattr(result, "structured_content", getattr(result, "structuredContent", None))
+        if structured is not None:
+            return structured
 
         if len(result.content) == 1 and isinstance(result.content[0], TextContent):
             text = result.content[0].text
