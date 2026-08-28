@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 
 from n3rv.a2a.hub import main as hub_main
+from n3rv.cli_code_graph import code_graph_app
 from n3rv.cli_memory import memory_app
 from n3rv.cli_org import org_app
 from n3rv.daemon import (
@@ -20,10 +21,12 @@ from n3rv.init import run_init
 app = typer.Typer(name="n3rv", help="Invisible engineering infrastructure for opencode agents")
 hub_app = typer.Typer(help="A2A Hub commands")
 daemon_app = typer.Typer(help="Manage n3rv hub daemon")
+code_graph_app.name = "code-graph"
 app.add_typer(hub_app, name="hub")
 app.add_typer(daemon_app, name="daemon")
 app.add_typer(memory_app, name="memory")
 app.add_typer(org_app, name="org")
+app.add_typer(code_graph_app, name="code-graph")
 
 
 @hub_app.command("start")

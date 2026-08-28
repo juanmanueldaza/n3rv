@@ -1,0 +1,310 @@
+"""CLI for the n3rv code-graph subcommand."""
+
+from __future__ import annotations
+
+import json
+import logging
+import sys
+from pathlib import Path
+
+import typer
+from rich.columns import Columns
+from rich.console import Console
+from rich.table import Table
+
+from n3rv.config import load_runtime_settings
+from n3rv.mcp.code_graph_store import CodeGraphStore
+from n3rv.mcp.code_graph_service import CodeGraphService
+from n3rv.mcp.shared import resolve_runtime_settings
+from n3rv.util import format_age
+
+code_graph_app = typer.Typer(
+    name="code-graph", help="Code graph: index, query, and explore project symbols"
+)
+console = Console()
+logger = logging.getLogger("n3rv.cli.code-graph")
+
+
+def _resolve_project_root(project_path: Path | None) -> Path:
+    if project_path is not None:
+        return project_path.resolve()
+    return Path.cwd()
+
+
+def _build_service(project_root: Path | None = None) -> CodeGraphService:
+    settings = resolve_runtime_settings(project_root)
+    db_path = settings.paths.n3rv_dir / "code_graph.db"
+    store = CodeGraphStore(db_path)
+    root = project_root or Path.cwd()
+    return CodeGraphService(store, root)
+
+
+def _print_error(exc: Exception) -> None:
+    console.print(f"[red]Error:[/red] {exc}")
+    raise typer.Exit(1) from exc
+
+
+def _print_json(obj: object) -> None:
+    console.print_json(data=obj if isinstance(obj, (dict, list)) else {"result": obj})
+
+
+@code_graph_app.command("init")
+def code_graph_init(
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    force: bool = typer.Option(False, "--force", help="Re-index even if unchanged"),
+) -> None:
+    """Initialize the code graph for a project (indexes on first call)."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    if force:
+        stats = svc.reconcile()
+    else:
+        stats = svc.index()
+    console.print(f"[green]Index complete:[/green] {stats['files_indexed']} files indexed, "
+                  f"{stats['symbols_found']} symbols, {stats['imports_found']} imports, "
+                  f"{stats['calls_found']} calls")
+    if stats.get("errors"):
+        console.print(f"[yellow]Errors:[/yellow] {stats['errors']}")
+    console.print(f"Graph DB: {root.parent / '.n3rv' / 'code_graph.db' if '.n3rv' in str(root) else 'see settings.paths.n3rv_dir'}")
+
+
+@code_graph_app.command("index")
+def code_graph_index(
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    force: bool = typer.Option(False, "--force", help="Force re-index"),
+) -> None:
+    """Index Python files into the code graph (incremental by default)."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    stats = svc.index() if not force else svc.reconcile()
+    console.print(f"Indexed {stats['files_indexed']} files, "
+                  f"{stats['symbols_found']} symbols, {stats['imports_found']} imports, "
+                  f"{stats['calls_found']} calls ({stats['files_skipped']} skipped)")
+    if stats.get("errors"):
+        console.print(f"[yellow]Errors:[/yellow] {stats['errors']}")
+
+
+@code_graph_app.command("sync")
+def code_graph_sync(
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+) -> None:
+    """Trigger an incremental sync of the code graph."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    stats = svc.index()
+    console.print(f"Synced {stats['files_indexed']} files ({stats['files_skipped']} skipped)")
+
+
+@code_graph_app.command("status")
+def code_graph_status(
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Show code graph statistics and pending files."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    stats = svc.status()
+    if json_output:
+        _print_json(stats)
+        return
+    table = Table(title="CodeGraph Status")
+    table.add_column("Metric", style="cyan")
+    table.add_column("Count", justify="right", style="green")
+    for key in ("files_indexed", "symbols_found", "imports_found", "calls_found"):
+        table.add_row(key.replace("_", " ").title(), str(stats.get(key, 0)))
+    table.add_row("Pending", str(len(stats.get("pending", []))))
+    console.print(table)
+    if stats.get("pending"):
+        console.print(f"[yellow]Pending sync:[/yellow] {', '.join(stats['pending'])}")
+
+
+@code_graph_app.command("query")
+def code_graph_query(
+    query: str = typer.Argument(..., help="Search query"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    kind: str | None = typer.Option(None, "--kind", help="Filter by symbol kind"),
+    limit: int = typer.Option(20, "--limit", help="Max results"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Search symbols by name or keyword."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    results = svc.store.search_fts(query, limit=limit)
+    if kind:
+        results = [r for r in results if r.get("kind") == kind]
+    if json_output:
+        _print_json(results)
+        return
+    table = Table(title=f"Search: {query}")
+    table.add_column("Name", style="cyan")
+    table.add_column("Kind", style="magenta")
+    table.add_column("File", style="blue")
+    table.add_column("Line", justify="right", style="green")
+    for r in results:
+        table.add_row(r["name"], r.get("kind", ""), r["file"], str(r["line"]))
+    console.print(table)
+
+
+@code_graph_app.command("explore")
+def code_graph_explore(
+    query: str = typer.Argument(..., help="Semantic query"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    max_nodes: int = typer.Option(20, "--max-nodes", help="Max nodes to return"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Explore code semantically in a single call."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    result = svc.explore(query, max_nodes=max_nodes, include_code=True)
+    if json_output:
+        _print_json(result)
+        return
+    nodes = result.get("nodes", [])
+    console.print(f"[green]Found {len(nodes)} nodes:[/green]")
+    for n in nodes[:max_nodes]:
+        console.print(f"  - {n['name']} ({n.get('kind', '?')}) in {n['file']}:{n['line']}")
+    code_files = result.get("code_by_file", {})
+    if code_files:
+        console.print("[bold]Verbatim source:[/bold]")
+        for file_path, code in list(code_files.items())[:5]:
+            console.print(f"[bold]{file_path}[/bold]:")
+            console.print(code)
+    blast = result.get("blast_radius", {})
+    if blast.get("affected_files"):
+        console.print(f"[bold]Affected files:[/bold] {', '.join(blast['affected_files'][:10])}")
+    call_paths = result.get("call_paths", [])
+    if call_paths:
+        table = Table(title="Call paths")
+        table.add_column("From", style="cyan")
+        table.add_column("To", style="green")
+        table.add_column("Via", style="yellow")
+        for cp in call_paths[:10]:
+            table.add_row(cp.get("from", ""), cp.get("to", ""), cp.get("via", ""))
+        console.print(table)
+
+
+@code_graph_app.command("node")
+def code_graph_node(
+    symbol_or_file: str = typer.Argument(..., help="Symbol name or file path"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Show details for a symbol or file."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    if "/" in symbol_or_file or symbol_or_file.endswith(".py"):
+        results = svc.store.query_symbols(file_path=symbol_or_file)
+    else:
+        results = svc.store.query_symbols(name=symbol_or_file)
+    if json_output:
+        _print_json(results)
+        return
+    table = Table(title=f"Node: {symbol_or_file}")
+    table.add_column("Name", style="cyan")
+    table.add_column("Kind", style="magenta")
+    table.add_column("File", style="blue")
+    table.add_column("Line", justify="right", style="green")
+    for r in results:
+        table.add_row(r["name"], r.get("kind", ""), r["file"], str(r["line"]))
+    console.print(table)
+
+
+@code_graph_app.command("files")
+def code_graph_files(
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """List all indexed Python files."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    files = svc.store.query_all_files()
+    if json_output:
+        _print_json(files)
+        return
+    console.print(f"Indexed files ({len(files)}):")
+    for f in files:
+        console.print(f"  - {f}")
+
+
+@code_graph_app.command("callers")
+def code_graph_callers(
+    symbol: str = typer.Argument(..., help="Symbol name"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    limit: int = typer.Option(20, "--limit", help="Max results"),
+) -> None:
+    """Find all call sites of a symbol."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    refs = svc.store.query_references(symbol)[:limit]
+    table = Table(title=f"Callers of {symbol}")
+    table.add_column("File", style="blue")
+    table.add_column("Line", justify="right", style="green")
+    table.add_column("Context", style="yellow")
+    for r in refs:
+        table.add_row(r["file"], str(r["line"]), r.get("context", ""))
+    console.print(table)
+
+
+@code_graph_app.command("callees")
+def code_graph_callees(
+    symbol: str = typer.Argument(..., help="Symbol name"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    limit: int = typer.Option(20, "--limit", help="Max results"),
+) -> None:
+    """Find what a symbol calls."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    # callees by file
+    refs = svc.store.query_callees(symbol)[:limit]
+    table = Table(title=f"Callees of {symbol}")
+    table.add_column("Name", style="cyan")
+    table.add_column("File", style="blue")
+    table.add_column("Line", justify="right", style="green")
+    for r in refs:
+        table.add_row(r["name"], r["file"], str(r["line"]))
+    console.print(table)
+
+
+@code_graph_app.command("impact")
+def code_graph_impact(
+    symbol: str = typer.Argument(..., help="Symbol name"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    depth: int = typer.Option(5, "--depth", help="Impact depth"),
+) -> None:
+    """Analyze impact of changing a symbol."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    refs = svc.store.query_references(symbol)
+    files = sorted({r["file"] for r in refs})
+    console.print(f"[bold]Symbol:[/bold] {symbol}")
+    console.print(f"[bold]Callers:[/bold] {len(refs)}")
+    console.print(f"[bold]Affected files:[/bold] {', '.join(files[:20])}")
+    for f in files[:20]:
+        aff = svc.affected(f, max_depth=depth)
+        for a in aff:
+            console.print(f"  - {a['file']}: {a['reason']} (depth {a['depth']})")
+
+
+@code_graph_app.command("affected")
+def code_graph_affected(
+    files: list[str] = typer.Argument(..., help="Changed files"),
+    project_path: Path = typer.Option(Path.cwd(), "--root", help="Project root"),
+    depth: int = typer.Option(5, "--depth", help="Traversal depth"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+) -> None:
+    """Find test files affected by changed source files."""
+    root = _resolve_project_root(project_path)
+    svc = _build_service(root)
+    affected: list[dict] = []
+    for f in files:
+        affected.extend(svc.affected(f, max_depth=depth))
+    if json_output:
+        _print_json(affected)
+        return
+    table = Table(title="Affected files")
+    table.add_column("File", style="red")
+    table.add_column("Reason", style="yellow")
+    table.add_column("Depth", justify="right", style="green")
+    for a in affected[:50]:
+        table.add_row(a["file"], a["reason"], str(a["depth"]))
+    console.print(table)
