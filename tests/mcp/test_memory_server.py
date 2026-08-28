@@ -320,10 +320,16 @@ def test_memory_store_migrates_legacy_metadata(runtime_settings) -> None:
 
 
 def test_build_memory_server_enables_stateless_http(runtime_settings) -> None:
+    from mcp.server.mcpserver import MCPServer
+
     server = build_memory_server(runtime_settings.paths.project_root)
 
-    assert server.settings.stateless_http is True
-    assert server.settings.json_response is True
+    # FastMCP's stateless_http/json_response settings were removed in MCP v2;
+    # MCPServer is stateless by default and streamable HTTP hardening is built-in.
+    # Verify we now return a proper MCPServer with expected identity.
+    assert isinstance(server, MCPServer)
+    assert server.name == "n3rv-memory"
+    assert "Shared persistent memory" in (server.instructions or "")
 
 
 def test_detect_agent_source_falls_back_to_env(monkeypatch) -> None:
