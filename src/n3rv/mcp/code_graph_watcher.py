@@ -112,10 +112,7 @@ class CodeGraphWatcher:
             logger.warning("CodeGraph watcher index failed: %s", exc)
         # Index done; clear pending for files that still exist on disk
         with self._lock:
-            current = {
-                str(p.relative_to(self.project_root))
-                for p in self.project_root.rglob("*.py")
-            }
+            current = {str(p.relative_to(self.project_root)) for p in self.project_root.rglob("*.py")}
             self.pending.difference_update(current)
 
     def start(self) -> None:

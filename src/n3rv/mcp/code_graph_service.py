@@ -340,10 +340,7 @@ class CodeGraphService:
         # Update watcher's pending set to reflect current on-disk files
         if hasattr(self, "_pending"):
             with self._pending_lock:
-                current = {
-                    str(p.relative_to(self.project_root))
-                    for p in self._find_python_files()
-                }
+                current = {str(p.relative_to(self.project_root)) for p in self._find_python_files()}
                 self.pending.difference_update(current)
 
         logger.info(
