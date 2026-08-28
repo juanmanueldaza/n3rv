@@ -29,15 +29,22 @@ Feature suggestions are welcome! When suggesting a feature:
 
 ### Pull Requests
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add or update tests as needed
-5. Ensure all tests pass (`pytest`)
-6. Ensure code follows style guidelines (`ruff check .` and `ruff format --check .`)
-7. Commit your changes (`git commit -m 'Add amazing feature'`)
-8. Push to the branch (`git push origin feature/amazing-feature`)
-9. Open a Pull Request
+> **Branch protection:** `main` is protected. No direct pushes — all changes go through a PR. CI is a PR gate: 4 required status checks (`Lint & Format`, `Test (Python 3.11/3.12/3.13)`) + 1 approving review, `strict: true`, `enforce_admins: true`. `git push origin main` will be rejected.
+
+1. Fork the repository (or create a feature branch if you have write access: `git checkout -b feat/amazing-feature`)
+2. Make your changes (follow SDD: `/sdd-new <change>` → `explore → … → verify`)
+3. Add or update tests as needed
+4. Ensure all checks pass locally:
+
+   ```bash
+   ruff check . && ruff format --check . && pytest -q
+   ```
+
+5. Commit with conventional commits (`feat(scope): description`)
+6. Push to your branch (`git push origin feat/amazing-feature`)
+7. Open a Pull Request against `main` — verify the 4 CI checks are green
+8. Address review comments (push fixups to same branch; `strict: true` requires branch up-to-date)
+9. Squash-merge only after 1 approving review + all 4 checks pass (`gh pr merge --squash --auto`)
 
 ### Development Setup
 
@@ -98,10 +105,10 @@ Examples:
 
 ## Review Process
 
-1. At least one maintainer must review your PR
-2. All CI checks must pass
+1. At least one maintainer must approve your PR
+2. All 4 CI checks must be green (`Lint & Format`, `Test 3.11`, `Test 3.12`, `Test 3.13`) — branch must be up-to-date with `main` (`strict: true`)
 3. Address any review comments
-4. Once approved, a maintainer will merge your PR
+4. Once approved + green, squash-merge (`gh pr merge --squash --auto`); direct pushes to `main` are blocked even for admins
 
 ## Questions?
 

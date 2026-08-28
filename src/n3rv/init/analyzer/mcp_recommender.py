@@ -20,8 +20,12 @@ _UNIVERSAL_SERVERS: list[MCPServerInfo] = [
     MCPServerInfo(
         name="github",
         type="local",
-        command=["npx", "-y", "@github/github-mcp-server"],
-        environment={"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"},  # nosec — template variable, not a secret
+        command=[
+            "bash",
+            "-c",
+            'GITHUB_PERSONAL_ACCESS_TOKEN="${GITHUB_PERSONAL_ACCESS_TOKEN:-$(gh auth token 2>/dev/null)}" exec npx -y @modelcontextprotocol/server-github',  # noqa: E501
+        ],
+        environment={},  # token auto-fetched from gh auth if not in env
         description="GitHub integration (repos, issues, PRs)",
     ),
     MCPServerInfo(
