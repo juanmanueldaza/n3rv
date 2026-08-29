@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import fnmatch
 import hashlib
 import logging
 from dataclasses import dataclass
@@ -12,7 +13,7 @@ from n3rv.mcp.code_graph_store import CodeGraphStore
 
 logger = logging.getLogger("n3rv.mcp.code_graph")
 
-_SKIP_DIRS = frozenset(
+_SKIP_DIRS_LITERAL = frozenset(
     {
         "__pycache__",
         ".git",
@@ -23,9 +24,19 @@ _SKIP_DIRS = frozenset(
         "node_modules",
         ".tox",
         ".eggs",
-        "*.egg-info",
     }
 )
+_SKIP_DIRS_GLOBS = ("*.egg-info",)
+
+
+def _should_skip(rel_parts: tuple[str, ...]) -> bool:
+    for part in rel_parts:
+        if part in _SKIP_DIRS_LITERAL:
+            return True
+        for pat in _SKIP_DIRS_GLOBS:
+            if fnmatch.fnmatch(part, pat):
+                return True
+    return False
 
 
 @dataclass
@@ -85,76 +96,86 @@ def _extract_args(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
 
 
 def _extract_symbols(tree: ast.Module, file_path: str) -> list[dict]:
-    """Extract all symbol definitions from an AST."""
+    """Extract all symbol definitions from an AST, including nested decls."""
     symbols: list[dict] = []
 
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            decorators = [d for d in node.decorator_list]
-            kind = "decorated" if decorators else "function"
-            symbols.append(
-                {
-                    "file_path": file_path,
-                    "name": node.name,
-                    "kind": kind,
-                    "line": node.lineno,
-                    "end_line": getattr(node, "end_lineno", None),
-                    "parent": None,
-                    "docstring": _get_docstring(node),
-                    "args": _extract_args(node),
-                }
-            )
-
-            # Methods inside classes — handled by walking ClassDef children
-        elif isinstance(node, ast.ClassDef):
-            decorators = [d for d in node.decorator_list]
-            kind = "decorated" if decorators else "class"
-            symbols.append(
-                {
-                    "file_path": file_path,
-                    "name": node.name,
-                    "kind": kind,
-                    "line": node.lineno,
-                    "end_line": getattr(node, "end_lineno", None),
-                    "parent": None,
-                    "docstring": _get_docstring(node),
-                    "args": None,
-                }
-            )
-
-            # Extract methods
-            for item in ast.iter_child_nodes(node):
-                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    item_decorators = [d for d in item.decorator_list]
-                    method_kind = "decorated" if item_decorators else "method"
-                    symbols.append(
-                        {
-                            "file_path": file_path,
-                            "name": item.name,
-                            "kind": method_kind,
-                            "line": item.lineno,
-                            "end_line": getattr(item, "end_lineno", None),
-                            "parent": node.name,
-                            "docstring": _get_docstring(item),
-                            "args": _extract_args(item),
-                        }
-                    )
-        elif isinstance(node, ast.Assign):
-            for target in node.targets:
+    def _walk(node: ast.AST, parent: str | None, parent_kind: str | None) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                decorators = getattr(child, "decorator_list", [])
+                # Determine kind: decorated vs function/method depending on parent kind
+                if decorators:
+                    kind = "decorated"
+                elif parent_kind == "class":
+                    kind = "method"
+                else:
+                    kind = "function"
+                symbols.append(
+                    {
+                        "file_path": file_path,
+                        "name": child.name,
+                        "kind": kind,
+                        "line": child.lineno,
+                        "end_line": getattr(child, "end_lineno", None),
+                        "parent": parent,
+                        "docstring": _get_docstring(child),
+                        "args": _extract_args(child),
+                    }
+                )
+                # Recurse: nested functions/classes inside this function
+                _walk(child, child.name, kind)
+            elif isinstance(child, ast.ClassDef):
+                decorators = getattr(child, "decorator_list", [])
+                kind = "decorated" if decorators else "class"
+                symbols.append(
+                    {
+                        "file_path": file_path,
+                        "name": child.name,
+                        "kind": kind,
+                        "line": child.lineno,
+                        "end_line": getattr(child, "end_lineno", None),
+                        "parent": parent,
+                        "docstring": _get_docstring(child),
+                        "args": None,
+                    }
+                )
+                _walk(child, child.name, kind)
+            elif isinstance(child, ast.Assign):
+                for target in child.targets:
+                    if isinstance(target, ast.Name):
+                        symbols.append(
+                            {
+                                "file_path": file_path,
+                                "name": target.id,
+                                "kind": "variable",
+                                "line": child.lineno,
+                                "end_line": getattr(child, "end_lineno", None),
+                                "parent": parent,
+                                "docstring": None,
+                                "args": None,
+                            }
+                        )
+                _walk(child, parent, parent_kind)
+            elif isinstance(child, ast.AnnAssign):
+                target = child.target
                 if isinstance(target, ast.Name):
                     symbols.append(
                         {
                             "file_path": file_path,
                             "name": target.id,
                             "kind": "variable",
-                            "line": node.lineno,
-                            "end_line": getattr(node, "end_lineno", None),
-                            "parent": None,
+                            "line": child.lineno,
+                            "end_line": getattr(child, "end_lineno", None),
+                            "parent": parent,
                             "docstring": None,
                             "args": None,
                         }
                     )
+                _walk(child, parent, parent_kind)
+            else:
+                _walk(child, parent, parent_kind)
 
+    _walk(tree, None, None)
     return symbols
 
 
@@ -188,7 +209,7 @@ def _extract_imports(tree: ast.Module, file_path: str) -> list[dict]:
     return imports
 
 
-def _extract_calls(tree: ast.Module, file_path: str) -> list[dict]:
+def _extract_calls(tree: ast.Module, file_path: str, source: str = "") -> list[dict]:
     """Extract all function/method call sites from an AST."""
     calls: list[dict] = []
 
@@ -196,10 +217,9 @@ def _extract_calls(tree: ast.Module, file_path: str) -> list[dict]:
         if isinstance(node, ast.Call):
             name = _resolve_call_name(node.func)
             if name:
-                # Get the source line for context
                 context = ""
                 try:
-                    context = ast.get_source_segment("", node) or ""
+                    context = ast.get_source_segment(source, node) or ""
                 except Exception:
                     pass
                 calls.append(
@@ -244,8 +264,11 @@ class CodeGraphService:
 
         for path in self.project_root.rglob("*.py"):
             # Skip excluded directories
-            parts = path.relative_to(self.project_root).parts
-            if any(part in _SKIP_DIRS for part in parts):
+            try:
+                parts = path.relative_to(self.project_root).parts
+            except ValueError:
+                continue
+            if _should_skip(parts):
                 continue
             files.append(path)
 
@@ -288,7 +311,7 @@ class CodeGraphService:
                 # Extract
                 symbols = _extract_symbols(tree, rel_path)
                 imports = _extract_imports(tree, rel_path)
-                calls = _extract_calls(tree, rel_path)
+                calls = _extract_calls(tree, rel_path, source)
 
                 # Store
                 self.store.clear_file(rel_path)
@@ -299,7 +322,6 @@ class CodeGraphService:
                 if calls:
                     self.store.insert_calls(calls)
                 self.store.upsert_file(rel_path, mtime, content_hash)
-
                 stats["files_indexed"] += 1
                 stats["symbols_found"] += len(symbols)
                 stats["imports_found"] += len(imports)
@@ -314,6 +336,12 @@ class CodeGraphService:
             except OSError as exc:
                 logger.warning("Error reading %s: %s", path, exc)
                 stats["errors"] += 1
+
+        # Update watcher's pending set to reflect current on-disk files
+        if hasattr(self, "_pending"):
+            with self._pending_lock:
+                current = {str(p.relative_to(self.project_root)) for p in self._find_python_files()}
+                self.pending.difference_update(current)
 
         logger.info(
             "Index complete: %d indexed, %d skipped, %d symbols, %d imports, %d calls, %d errors",
@@ -368,3 +396,206 @@ class CodeGraphService:
 
         _walk(file_path, 0)
         return results
+
+    def _read_verbatim(self, rel_path: str, line: int, end_line: int | None) -> str:
+        """Read verbatim source slice with line numbers."""
+        abs_path = self.project_root / rel_path
+        try:
+            text = abs_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+        lines = text.splitlines()
+        # Clamp
+        start = max(1, line)
+        end = end_line if end_line is not None else start
+        end = min(len(lines), end)
+        # Include a little context: expand to end_line or start+10 if no end
+        if end_line is None:
+            end = min(len(lines), start + 10)
+        sliced = lines[start - 1 : end]
+        numbered = [f"{i}: {content}" for i, content in zip(range(start, end + 1), sliced, strict=False)]
+        return "\n".join(numbered)
+
+    def status(self) -> dict:
+        """Aggregate status for CLI / MCP."""
+        counts = self.store.get_counts()
+        # pending comes from watcher if present; base service has empty pending
+        pending = getattr(self, "_pending", None)
+        if pending is None:
+            pending_list: list[str] = []
+        elif isinstance(pending, set):
+            pending_list = sorted(pending)
+        else:
+            pending_list = list(pending)
+        return {
+            "files_indexed": counts["files"],
+            "symbols_found": counts["symbols"],
+            "imports_found": counts["imports"],
+            "calls_found": counts["calls"],
+            "pending": pending_list,
+        }
+
+    def reconcile(self) -> dict:
+        """Connect-time catch-up: scan disk, re-index drifted files, prune stale."""
+        files = self._find_python_files()
+        existing = {str(p.relative_to(self.project_root)) for p in files}
+        # Remove stale DB entries for deleted files
+        stale_removed = self.store.remove_stale_files(existing)
+        # Incremental index will handle drift via mtime+hash check
+        stats = self.index()
+        stats["stale_removed"] = stale_removed
+        return stats
+
+    def explore(
+        self,
+        query: str,
+        max_nodes: int = 20,
+        include_code: bool = True,
+    ) -> dict:
+        """Surgical explore: one call returns nodes + verbatim + call paths + blast radius."""
+        if not query or not query.strip():
+            return {"error": "query required"}
+        max_nodes = max(1, min(int(max_nodes), 100))
+        query = query.strip()
+
+        # Ensure index is fresh (handles edits while watcher pending / hub down)
+        # Lightweight: incremental index will skip unchanged quickly
+        try:
+            self.index()
+        except Exception as exc:
+            logger.warning("Explore reconcile failed: %s", exc)
+
+        # Ranked search
+        nodes = self.store.search_fts(query, limit=max_nodes)
+        if not nodes:
+            # Fallback to LIKE if FTS yielded nothing but symbols exist
+            nodes = self.store.search_fts(query, limit=max_nodes)
+
+        if include_code:
+            code_by_file: dict[str, str] = {}
+            for n in nodes:
+                rel = n["file"]
+                if rel not in code_by_file:
+                    snippet = self._read_verbatim(rel, n["line"], n.get("end_line"))
+                    if snippet:
+                        code_by_file[rel] = snippet
+                    else:
+                        # Fallback: try to read whole file grouped if multiple nodes same file
+                        continue
+            # If multiple nodes same file, we want full grouped snippets per file not per-node slice
+            # Merge: for each file, collect all line ranges and read once with union
+            if nodes and code_by_file:
+                # Rebuild grouped per-file with all symbol ranges merged
+                from collections import defaultdict
+
+                file_to_nodes: dict[str, list[dict]] = defaultdict(list)
+                for n in nodes:
+                    file_to_nodes[n["file"]].append(n)
+                grouped: dict[str, str] = {}
+                for rel, ns in file_to_nodes.items():
+                    try:
+                        text = (self.project_root / rel).read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        continue
+                    lines = text.splitlines()
+                    blocks: list[str] = []
+                    for n in sorted(ns, key=lambda x: x["line"]):
+                        s = max(1, n["line"])
+                        e = n.get("end_line") or s
+                        e = min(len(lines), e)
+                        # Expand slightly if single line
+                        if e - s < 1:
+                            e = min(len(lines), s + 5)
+                        snippet_lines = lines[s - 1 : e]
+                        numbered = [f"{i}: {content}" for i, content in enumerate(snippet_lines, start=s)]
+                        blocks.append("\n".join(numbered))
+                    grouped[rel] = "\n---\n".join(blocks)
+                code_by_file = grouped
+        else:
+            code_by_file = {}
+
+        # Call paths: for each node, find call sites that reference its name
+        call_paths: list[dict] = []
+        seen_paths: set[tuple[str, str, str]] = set()
+        for n in nodes:
+            name = n["name"]
+            # Callers: where this symbol is called
+            refs = self.store.query_references(name)
+            for r in refs:
+                key = (r["file"], name, r.get("context", ""))
+                if key in seen_paths:
+                    continue
+                seen_paths.add(key)
+                call_paths.append(
+                    {
+                        "from": r["file"],
+                        "to": n["file"],
+                        "via": name,
+                        "line": r["line"],
+                        "context": r.get("context", ""),
+                    }
+                )
+            # Callees: what this symbol's file calls (outgoing)
+            try:
+                callees = self.store.query_callees(n["file"])
+                for c in callees[:3]:  # limit per node to keep payload bounded
+                    key2 = (n["file"], c["name"], c.get("context", ""))
+                    if key2 in seen_paths:
+                        continue
+                    seen_paths.add(key2)
+                    call_paths.append(
+                        {
+                            "from": n["file"],
+                            "to": c["name"],
+                            "via": c["name"],
+                            "line": c["line"],
+                            "context": c.get("context", ""),
+                        }
+                    )
+            except Exception:
+                pass
+
+        # Blast radius: affected files for each result file + aggregate callers/callees
+        blast_callers: list[dict] = []
+        blast_callees: list[dict] = []
+        affected_files_set: set[str] = set()
+        affected_detailed: list[dict] = []
+        for n in nodes:
+            # affected via imports
+            try:
+                aff = self.affected(n["file"])
+                for a in aff:
+                    if a["file"] not in affected_files_set:
+                        affected_files_set.add(a["file"])
+                        affected_detailed.append(a)
+            except Exception:
+                pass
+            # callers/callees per node
+            try:
+                refs = self.store.query_references(n["name"])
+                for r in refs:
+                    if r not in blast_callers:
+                        blast_callers.append(r)
+            except Exception:
+                pass
+            try:
+                cs = self.store.query_callees(n["file"])
+                for c in cs:
+                    entry = {"file": n["file"], "name": c["name"], "line": c["line"]}
+                    if entry not in blast_callees:
+                        blast_callees.append(entry)
+            except Exception:
+                pass
+
+        result: dict = {
+            "nodes": nodes,
+            "code_by_file": code_by_file,
+            "call_paths": call_paths[:50],
+            "blast_radius": {
+                "callers": blast_callers[:20],
+                "callees": blast_callees[:20],
+                "affected_files": sorted(affected_files_set),
+                "affected": affected_detailed[:20],
+            },
+        }
+        return result
