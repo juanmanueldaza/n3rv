@@ -123,6 +123,27 @@
         }
       },
       "description": "Detected project directory structure."
+    },
+    "sdkit_feature_name": {
+      "type": "string",
+      "required": false,
+      "description": "Name of the feature being specified (for spec-kit templates)."
+    },
+    "sdkit_feature_summary": {
+      "type": "string",
+      "required": false,
+      "description": "Brief summary of the feature (for spec-kit templates)."
+    },
+    "sdkit_created_date": {
+      "type": "string",
+      "required": false,
+      "description": "Creation date timestamp (for spec-kit templates)."
+    },
+    "sdkit_feature_status": {
+      "type": "string",
+      "required": false,
+      "enum": ["Draft", "Proposed", "Accepted", "Implemented"],
+      "description": "Status of the feature (for spec-kit templates)."
     }
   }
 }

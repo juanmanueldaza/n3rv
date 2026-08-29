@@ -195,6 +195,31 @@ FILE_MANIFEST = [
     ("opencode.json.j2", "opencode.json", False, False),
     ("opencode.template.json.j2", "opencode.template.json", False, False),
     ("githooks/pre-push.py.j2", ".githooks/pre-push", False, True),
+    # Constitution file (spec-kit inspired project principles)
+    ("constitution.md.j2", "constitution.md", False, False),
+    # Spec-kit canonical templates (byte-identical to GitHub spec-kit core pack).
+    # Adopted from https://github.com/github/spec-kit (MIT, © GitHub, Inc.)
+    ("spec-template.md.j2", ".specify/templates/spec-template.md", False, False),
+    ("plan-template.md.j2", ".specify/templates/plan-template.md", False, False),
+    ("tasks-template.md.j2", ".specify/templates/tasks-template.md", False, False),
+    (
+        "constitution-template.md.j2",
+        ".specify/templates/constitution-template.md",
+        False,
+        False,
+    ),
+    (
+        "checklist-template.md.j2",
+        ".specify/templates/checklist-template.md",
+        False,
+        False,
+    ),
+    (
+        "specify-templates-NOTICE.md.j2",
+        ".specify/templates/NOTICE.md",
+        False,
+        False,
+    ),
     # Plugins
     (
         "opencode/plugins/n3rv-lifecycle.js.j2",
@@ -291,6 +316,24 @@ FILE_MANIFEST = [
         False,
     ),
     (
+        "opencode/skills/sdd-spec-kit-spec/SKILL.md.j2",
+        ".opencode/skills/sdd-spec-kit-spec/SKILL.md",
+        False,
+        False,
+    ),
+    (
+        "opencode/skills/sdd-spec-kit-plan/SKILL.md.j2",
+        ".opencode/skills/sdd-spec-kit-plan/SKILL.md",
+        False,
+        False,
+    ),
+    (
+        "opencode/skills/sdd-spec-kit-tasks/SKILL.md.j2",
+        ".opencode/skills/sdd-spec-kit-tasks/SKILL.md",
+        False,
+        False,
+    ),
+    (
         "opencode/skills/judgment-day/SKILL.md.j2",
         ".opencode/skills/judgment-day/SKILL.md",
         False,
@@ -298,6 +341,7 @@ FILE_MANIFEST = [
     ),
     # Slash commands
     ("opencode/commands/sdd-new.md.j2", ".opencode/commands/sdd-new.md", False, False),
+    ("opencode/commands/spec-kit.md.j2", ".opencode/commands/spec-kit.md", False, False),
     (
         "opencode/commands/judgment-day.md.j2",
         ".opencode/commands/judgment-day.md",
@@ -351,7 +395,6 @@ FILE_MANIFEST = [
         False,
     ),
 ]
-
 
 N3RV_DIR = Path(".n3rv")
 
