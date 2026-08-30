@@ -1,0 +1,62 @@
+---
+name: sdd-spec-kit-plan
+description: "Create an implementation plan using spec-kit template format."
+compatibility: opencode
+when_to_use: "After sdd-spec. Creates a technical design plan with architecture, components, and edge cases."
+allowed-tools:
+  - Bash
+  - Read
+  - mcp__n3rv-memory__memory_recall
+  - mcp__n3rv-memory__memory_save
+model: medium
+effort: medium
+user-invocable: false
+---
+
+## Goal
+
+Create an implementation plan document using the canonical spec-kit template format
+(`.specify/templates/plan-template.md`). The plan captures technical context, a constitution
+check, the concrete project structure, and complexity tracking. It must be traceable to the
+feature specification's user stories and requirements.
+
+## Steps
+
+1. Load spec: `memory_recall(topic_key="sdd-<change_id>-spec-kit-spec")` (fall back to `sdd-<change_id>-spec`)
+2. Load proposal if needed: `memory_recall(topic_key="sdd-<change_id>-proposal")`
+3. Prompt the user for technical details (language/version, dependencies, storage, testing,
+   platform, project type, performance goals, constraints, scale/scope, and the real directory
+   layout to use)
+4. Write the implementation plan document using the canonical spec-kit template structure:
+   - **Header**: `# Implementation Plan: [FEATURE]`, Branch, Date, Spec link, Input
+   - **Summary**: Extract the primary requirement + technical approach from the spec
+   - **Technical Context**: Language/Version, Primary Dependencies, Storage, Testing, Target
+     Platform, Project Type, Performance Goals, Constraints, Scale/Scope. Mark unknown fields
+     `NEEDS CLARIFICATION`.
+   - **Constitution Check** *GATE*: Evaluate against the project `constitution.md` principles;
+     conflicts with a MUST are CRITICAL
+   - **Project Structure**: Documentation tree (specs/[###-feature]/...) and concrete Source
+     Code tree (real paths, no Option labels), plus a Structure Decision
+   - **Complexity Tracking**: Only if constitution violations must be justified (table of
+     Violation / Why Needed / Simpler Alternative Rejected Because)
+5. Save to memory:
+   - title: `SDD Plan (spec-kit): <change_id>`
+   - topic_key: `sdd-<change_id>-spec-kit-plan`
+   - type: `architecture`
+   - content: the implementation plan document
+6. **Board Update**: Check your prompt for an issue number (look for `for issue #N` or `#<number>`). If found, execute the commands below with `<ISSUE_NUMBER>` replaced by that number. **If no issue number is present in your prompt, skip this entire section.**
+
+   ```bash
+   ITEM_ID=$(gh api graphql -f query='query{organization(login:"reverberage"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id')
+   [ -n "$ITEM_ID" ] && gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhXejII --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id 47fc9ee4
+   [ -n "$ITEM_ID" ] && gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhYUpaI --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id 8a8f0ea4
+   ```
+
+## Quality Bar
+
+The implementation plan must be traceable to the feature specification's user stories and
+requirements. It must follow the canonical spec-kit template structure: Summary, Technical
+Context, Constitution Check, Project Structure (with concrete paths and a Structure Decision),
+and Complexity Tracking (only when constitution violations are justified). Unspecified technical
+details are flagged `NEEDS CLARIFICATION`, never silently assumed. The plan must not contradict
+the spec.

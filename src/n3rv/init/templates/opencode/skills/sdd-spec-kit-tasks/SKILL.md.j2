@@ -1,0 +1,60 @@
+---
+name: sdd-spec-kit-tasks
+description: "Break design into ordered tasks using spec-kit template format."
+compatibility: opencode
+when_to_use: "After sdd-design. Creates dependency-ordered implementation tasks organized by phase with checklist format."
+allowed-tools:
+  - Bash
+  - Read
+  - mcp__n3rv-memory__memory_recall
+  - mcp__n3rv-memory__memory_save
+model: medium
+effort: medium
+user-invocable: false
+---
+
+## Goal
+
+Break the technical design into an ordered list of atomic, reviewable implementation tasks
+organized by phase and by user story, using the canonical spec-kit template format
+(`.specify/templates/tasks-template.md`). Each task must be independently reviewable with a
+testable "done when" condition.
+
+## Steps
+
+1. Load design: `memory_recall(topic_key="sdd-<change_id>-spec-kit-plan")` (fall back to `sdd-<change_id>-design`)
+2. Load spec if needed: `memory_recall(topic_key="sdd-<change_id>-spec-kit-spec")`
+3. Prompt the user for task breakdown (phase organization: setup, foundational, user stories, polish)
+4. Write the task list document using the canonical spec-kit template format:
+   - **Format**: `[ID] [P?] [Story] Description`, e.g. `- [ ] T012 [P] [US1] Create model in src/models/...`
+   - **Phase 1: Setup**: Shared infrastructure and scaffolding
+   - **Phase 2: Foundational**: Core prerequisites that BLOCK all user stories
+   - **Phase 3+: User Stories**: One phase per user story, in priority order (P1 MVP first),
+     grouped so each story is independently implementable and testable
+   - **Final Phase: Polish**: Cross-cutting cleanup, documentation, security hardening
+   - `[P]` marks tasks that can run in parallel (different files, no dependencies)
+   - `[Story]` maps each task to its user story for traceability
+   - Include exact file paths in every description
+   - Tasks must be ordered so earlier tasks unblock later ones
+   - Every requirement/user story from the spec must be covered by at least one task
+5. Save to memory:
+   - title: `SDD Tasks (spec-kit): <change_id>`
+   - topic_key: `sdd-<change_id>-spec-kit-tasks`
+   - type: `context`
+   - content: the task list document
+6. **Board Update**: Check your prompt for an issue number (look for `for issue #N` or `#<number>`). If found, execute the commands below with `<ISSUE_NUMBER>` replaced by that number. **If no issue number is present in your prompt, skip this entire section.**
+
+   ```bash
+   ITEM_ID=$(gh api graphql -f query='query{organization(login:"reverberage"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id')
+   [ -n "$ITEM_ID" ] && gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhXejII --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id 47fc9ee4
+   [ -n "$ITEM_ID" ] && gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhYUpaI --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id 1b7d843f
+   ```
+
+## Quality Bar
+
+- Each task is independently reviewable (no "and also" tasks covering multiple concerns)
+- Every requirement/user story from the spec is covered by at least one task
+- "Done when" conditions are testable (binary pass/fail, no judgment calls)
+- Tasks follow the canonical format `- [ ] [ID] [P?] [Story] Description` with exact file paths
+- Tasks are organized into phases: setup, foundational, user stories (by priority), polish
+- Each user story is independently implementable and testable (grouped per story)

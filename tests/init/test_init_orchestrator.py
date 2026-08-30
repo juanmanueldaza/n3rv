@@ -26,6 +26,15 @@ def test_init_in_empty_project_creates_all_files(tmp_path: Path):
         ".opencode/skills/commits/SKILL.md",
         ".opencode/commands/sdd-new.md",
         ".opencode/agents/sdd-explorer.md",
+        # Spec-kit integration files
+        ".opencode/commands/spec-kit.md",
+        ".opencode/skills/sdd-spec-kit-spec/SKILL.md",
+        ".opencode/skills/sdd-spec-kit-plan/SKILL.md",
+        ".opencode/skills/sdd-spec-kit-tasks/SKILL.md",
+        ".specify/templates/spec-template.md",
+        ".specify/templates/plan-template.md",
+        ".specify/templates/tasks-template.md",
+        "constitution.md",
     ]
 
     for file_path in expected_files:

@@ -1,0 +1,72 @@
+---
+description: Run the spec-kit workflow for a feature (spec → plan → tasks)
+agent: n3rv
+subtask: true
+argument-hint: <feature description>
+---
+
+Run the spec-kit workflow for: $ARGUMENTS
+
+You are the spec-kit orchestrator. Your role is to apply the spec-kit workflow to create a
+feature specification, implementation plan, and task list for the requested feature. This
+workflow mirrors GitHub Spec Kit: a testable spec drives the plan, the plan drives the tasks.
+
+## Setup
+
+Derive a `change_id` from the arguments:
+- Lowercase, replace spaces and special chars with dashes, truncate to 40 chars
+- Example: "add user auth" → `add-user-auth`
+
+Parse `--issue N` from arguments if present. The issue number is used to auto-update the project board.
+
+Load the `.specify/templates/` scaffolds if present (created by `n3rv init`), otherwise use the
+spec-kit template structures documented in the `sdd-spec-kit-*` skills.
+
+## Board Integration
+
+If an issue number was provided (via `--issue N`), include it in every subagent prompt. The subagents will auto-update the project board after each phase. If no issue number is provided, skip board updates.
+
+---
+
+## Phase 1 — Spec
+
+Load the `sdd-spec-kit-spec` skill and run it for `change_id=<change_id>`.
+- Load the proposal/context from memory if it exists (`sdd-<change_id>-proposal`, `sdd-<change_id>-context`)
+- Write a feature specification following the canonical spec-kit template (`.specify/templates/spec-template.md`):
+  User Scenarios & Testing (prioritized, independently testable), Edge Cases, Requirements (FR-xxx),
+  Key Entities, Success Criteria (SC-xxx), Assumptions
+- Every acceptance criterion must be testable (binary pass/fail)
+- Save to memory with topic_key `sdd-<change_id>-spec-kit-spec`
+- Optionally write `specs/<feature>/spec.md` if a feature directory convention exists
+
+## Phase 2 — Plan
+
+Load the `sdd-spec-kit-plan` skill and run it for `change_id=<change_id>`.
+- Load the spec from memory (`sdd-<change_id>-spec-kit-spec`)
+- Write an implementation plan following the canonical spec-kit template (`.specify/templates/plan-template.md`):
+  Summary, Technical Context, Constitution Check, Project Structure (concrete paths), Complexity Tracking
+- The plan must be traceable to the spec's user stories and requirements
+- Save to memory with topic_key `sdd-<change_id>-spec-kit-plan`
+- Optionally write `specs/<feature>/plan.md`
+
+## Phase 3 — Tasks
+
+Load the `sdd-spec-kit-tasks` skill and run it for `change_id=<change_id>`.
+- Load the plan and spec from memory
+- Write a dependency-ordered task list following the canonical spec-kit template
+  (`.specify/templates/tasks-template.md`), organized by phase (setup, foundational, user stories,
+  polish) and grouped per user story
+- Each task uses the canonical format: `- [ ] [ID] [P?] [Story] Description with file path`
+- Every spec requirement/user story must be covered by at least one task
+- Save to memory with topic_key `sdd-<change_id>-spec-kit-tasks`
+- Optionally write `specs/<feature>/tasks.md`
+
+---
+
+## Done
+
+Report to the user:
+- change_id used
+- phases completed
+- memory keys written: `sdd-<change_id>-spec-kit-{spec,plan,tasks}`
+- Next step: implement the task list (via `/sdd-new` or manual implementation)
