@@ -144,7 +144,7 @@ def test_init_creates_canonical_content(tmp_path: Path):
 
     spec = (tmp_path / ".specify/templates/spec-template.md").read_text()
     assert "## User Scenarios & Testing *(mandatory)*" in spec
-    assert "**Input**: User description: \"$ARGUMENTS\"" in spec
+    assert '**Input**: User description: "$ARGUMENTS"' in spec
 
     tasks = (tmp_path / ".specify/templates/tasks-template.md").read_text()
     assert "## Format: `[ID] [P?] [Story] Description`" in tasks
