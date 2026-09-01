@@ -269,6 +269,17 @@ FILE_UPDATE_MANIFEST: list[UpdateEntry] = [
         ".opencode/agents/n3rv.md",
         UpdateStrategy.SKIP_DEFAULT,
     ),
+    # Specialist sub-agents (external knowledge + environment awareness)
+    UpdateEntry(
+        "opencode/agents/n3rv-scout.md.j2",
+        ".opencode/agents/n3rv-scout.md",
+        UpdateStrategy.SKIP_DEFAULT,
+    ),
+    UpdateEntry(
+        "opencode/agents/n3rv-sensor.md.j2",
+        ".opencode/agents/n3rv-sensor.md",
+        UpdateStrategy.SKIP_DEFAULT,
+    ),
 ]
 
 

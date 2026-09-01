@@ -9,6 +9,8 @@ N3RV provides invisible engineering infrastructure for AI agents through three i
 | `n3rv` | CLI for init, update, hub start, memory commands | `src/n3rv/cli.py:main()` |
 | `n3rv-memory` | MCP server exposing memory tools | `src/n3rv/mcp/memory_server.py:main()` |
 | `n3rv-hub` | MCP server exposing hub delegation tools | `src/n3rv/mcp/hub_server.py:main()` |
+| `n3rv-code-graph` | MCP server exposing code graph (tree-sitter, 20+ langs) | `src/n3rv/mcp/code_graph_server.py:main()` |
+| `n3rv-exec` | MCP server exposing universal lint/test/typecheck (20+ langs, cache, affected) | `src/n3rv/mcp/exec_server.py:main()` |
 
 ## Evangelion Concept Map
 
@@ -200,6 +202,25 @@ Exposes 5 tools for task delegation via FastMCP.
 | `complete_task` | Mark task as completed |
 | `get_task` | Get task state by ID |
 
+### Exec Server (`src/n3rv/mcp/exec_server.py` + `src/n3rv/mcp/exec/`)
+
+Twin to `codebase-memory-mcp` — universal 20+ langs (`python` `js` `ts` `go` `rust` `java` `kotlin` `swift` `ruby` `php` `csharp` `cpp` `scala` `dart` `lua` `shell` `zig` `elixir` `haskell`) via `registry.py` (26+ exts, 20+ configs). SQLite WAL (`exec_runs` + `exec_file_states` + XXH3) + `ExecWatcher` debounce + `ExecService` `inputHash=fileHashes:configHash:toolHash` (70×) + `exec_affected` blast-radius (50-75% prune) + staleness banner.
+
+| Tool | Description |
+|------|-------------|
+| `exec_lint` | Universal lint (`ruff`→`eslint`→`golangci`→`clippy`→`rubocop`→...) |
+| `exec_typecheck` | Universal typecheck (`mypy`→`tsc`→`go vet`→...) |
+| `exec_test` | Universal test (`pytest`→`npm`→`go test`→...) |
+| `exec_history` | Last runs |
+| `exec_diff` | Run detail |
+| `exec_timeline` | File timeline |
+| `exec_cache_stats` | `hit_rate` |
+| `exec_affected` | Affected via code-graph |
+
+### Code Graph Server (`src/n3rv/mcp/code_graph_server.py`)
+
+Tree-sitter 20+ langs, FTS5, `code_graph_explore` (symbols+refs+blast-radius). Twin to Exec: shares WAL + watcher + staleness pattern (`_inject_staleness`).
+
 ## Agent Cards & Skill Registry
 
 Agent cards define capabilities in `.n3rv/a2a-config.yaml` (created by `n3rv init`):
@@ -248,3 +269,63 @@ Agent calls delegate_task(skill_id="sdd-design", description="...")
       → Task state updated to COMPLETED
       → Memory saved to session about delegation
 ```
+
+## Agent Dispatch: Native Subagents vs A2A Hub
+
+n3rv has **two** dispatch mechanisms. They are not rivals — each owns a distinct scope. This
+is a deliberate split, not redundancy.
+
+### opencode-native subagents (in-process, session-scoped)
+
+Agents defined as `.opencode/agents/*.md` (the sdd-* roster, `git-ops`, `github-ops`,
+`project-ops`, `n3rv-scout`, `n3rv-sensor`, and the `n3rv` primary). They are dispatched by
+the primary via the **Task tool** (`permission.task`) and `@mention`.
+
+- **Lifetime:** bounded by the current opencode session/process.
+- **Scope:** execution of a single phase or investigation.
+- **Cost:** cheap — no IPC/subprocess; state lives in the same session.
+- **Use for:** everything that happens *within* one working session — SDD phases, code
+  exploration, git/github operations, external-doc lookups (`n3rv-scout`), toolchain
+  checks (`n3rv-sensor`).
+
+### n3rv A2A hub (durable, cross-session, cross-project)
+
+The hub (`src/n3rv/a2a/hub.py`) routes tasks by `skill_id` via `delegate_task` /
+`check_pending_tasks`, persisting task state to disk and surviving hub restarts.
+
+- **Lifetime:** survives the session; tasks persist across restarts and projects.
+- **Scope:** handing work *between* agents, *across* projects, or *past* a session boundary.
+- **Cost:** heavier — JSON-RPC over HTTP, subprocess bridge.
+- **Use for:** long-running or multi-session jobs, cross-project handoff, anything that must
+  outlive the current opencode session. opencode-native subagents *cannot* do this; the hub
+  is the durable spine n3rv adds on top of opencode.
+
+### Decision rule
+
+> If the work must survive the current session or cross a project boundary → **A2A hub**.
+> Otherwise → **opencode-native subagent** (via the Task tool).
+
+### Background subagents (parallel dispatch)
+
+Opencode can run a subagent in the background (return immediately, notify on completion) via
+the `background: true` task parameter, e.g. launching `n3rv-scout` / `n3rv-sensor`
+concurrently during SDD explore while exploration continues.
+
+**Enablement:** this is a **process-environment** flag, **not** a config key. It cannot be set
+in `opencode.json` and the `shell.env` plugin does not apply (the flag is read by the opencode
+core, not a shell subprocess). It is read by the core task tool at
+`packages/opencode/src/tool/task.ts`:
+
+```
+Background subagents require OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true
+```
+
+Set it in the environment of the process that launches opencode:
+
+```bash
+export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true
+opencode
+```
+
+n3rv agents using `background: true` **always degrade to foreground** when the flag is unset,
+so the workflow never depends on it.

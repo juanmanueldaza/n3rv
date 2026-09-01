@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-N3RV exposes two MCP servers with a total of 17 tools for agent integration.
+N3RV exposes three MCP servers with a total of 25 tools for agent integration (Memory 12 + Hub 5 + Exec 8).
 
 ## Memory Server (`n3rv-memory`)
 
@@ -223,6 +223,98 @@ Get the current state of a task by its ID.
 | `task_id` | string | Yes | Task ID |
 
 Returns: Task object with `id`, `status`, `assigned_agent`, `metadata`.
+
+---
+
+## Exec Server (`n3rv-exec`)
+
+Exposed by `src/n3rv/mcp/exec_server.py` (with `src/n3rv/mcp/exec/`). Provides universal lint/typecheck/test with XXH3 cache + blast-radius, twin to `codebase-memory-mcp`.
+
+**Registry (`src/n3rv/mcp/exec/registry.py`):** 20+ languages — `python (.py/.pyi)`, `javascript (.js/.jsx/.mjs/.cjs)`, `typescript (.ts/.tsx)`, `go (.go)`, `rust (.rs)`, `java (.java)`, `kotlin (.kt/.kts)`, `swift (.swift)`, `objc (.m/.mm/.h)`, `ruby (.rb)`, `php (.php)`, `csharp (.cs)`, `cpp (.cpp/.c/.h/.hpp)`, `scala (.scala)`, `dart (.dart)`, `lua (.lua)`, `shell (.sh)`, `zig (.zig)`, `elixir (.ex/.exs)`, `haskell (.hs)` — all watched via `ALL_EXTS` (26+) + `ALL_CONFIGS` (20+).
+
+**Cache:** `inputHash = XXH3(fileHashes):configHash:toolHash` via `ExecStore` (SQLite WAL, `exec_runs` + `exec_file_states`) + `ExecWatcher` debounce (`N3RV_EXEC_DEBOUNCE_MS`) + `ExecService` orchestration (70×, Turborepo/Bazel grade). Staleness banner (`⚠️ Stale: file pending sync`) via `_inject_staleness`.
+
+### `exec_lint`
+
+Run lint with universal auto-detect per-extension (`ruff`→`eslint`→`golangci-lint`→`cargo clippy`→`rubocop`→`phpcs`→`checkstyle`→`ktlint`→`swiftlint`→`clang-tidy`→`dotnet`→`scalastyle`).
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | string | No | File or dir (default `.`) |
+| `affected` | bool | No | If true, only lint `affected_lints` from `exec_affected` (50-75% prune) |
+| `base_ref` | string | No | Git base for affected (default `main`) |
+
+Returns: `{pass, tool, command, output, errors[], input_hash, cached, banner?, footer?}`. Jail: `cwd` inside `project_root`, `no shell`, `60s` timeout, `10KB` cap (`AT Field`).
+
+### `exec_typecheck`
+
+Universal typecheck (`mypy`→`tsc`→`go vet`→`cargo check`→...).
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | string | No | Target (default `src`) |
+
+Returns: `{pass, tool, command, output, errors[], input_hash, cached}`.
+
+### `exec_test`
+
+Universal test (`pytest`→`npm test`→`go test`→`cargo test`→...).
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | string | No | Path (default `.`) |
+| `extra_args` | string | No | Extra args split safely (no shell) |
+| `affected` | bool | No | If true, only run `affected_tests` (50% prune) |
+| `base_ref` | string | No | Git base |
+
+Returns: `{pass, tool, command, output, summary, passed, failed, input_hash, cached}`.
+
+### `exec_history`
+
+Return last runs.
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `limit` | int | No | Max (default 20, max 100) |
+| `tool` | string | No | Filter by tool |
+
+Returns: `{runs[], count}`.
+
+### `exec_diff`
+
+Diff/detail for a run.
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `run_id` | int | Yes | Row id |
+
+Returns: `{run}` or `{error}`.
+
+### `exec_timeline`
+
+Timeline for a file.
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file_path` | string | Yes | File |
+
+Returns: `{runs[], count, file}`.
+
+### `exec_cache_stats`
+
+Cache stats.
+
+Returns: `{total_runs, unique_hashes, hit_rate, runs, file_states}`.
+
+### `exec_affected`
+
+Affected via `codebase-memory-mcp` blast radius (`detect_changes` → `Max` win).
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `base_ref` | string | No | Git base (default `main`) |
+
+Returns: `{changed_files[], affected_tests[], affected_lints[], affected[]}`.
 
 ---
 

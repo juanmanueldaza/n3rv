@@ -47,6 +47,7 @@ n3rv = "n3rv.cli:main"
 n3rv-memory = "n3rv.mcp.memory_server:main"
 n3rv-hub = "n3rv.mcp.hub_server:main"
 n3rv-code-graph = "n3rv.mcp.code_graph_server:main"
+n3rv-exec = "n3rv.mcp.exec_server:main"
 
 [project.urls]
 Homepage = "https://n3rv.daza.ar"
