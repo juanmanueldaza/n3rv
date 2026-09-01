@@ -9,6 +9,8 @@ N3RV provides invisible engineering infrastructure for AI agents through three i
 | `n3rv` | CLI for init, update, hub start, memory commands | `src/n3rv/cli.py:main()` |
 | `n3rv-memory` | MCP server exposing memory tools | `src/n3rv/mcp/memory_server.py:main()` |
 | `n3rv-hub` | MCP server exposing hub delegation tools | `src/n3rv/mcp/hub_server.py:main()` |
+| `n3rv-code-graph` | MCP server exposing code graph (tree-sitter, 20+ langs) | `src/n3rv/mcp/code_graph_server.py:main()` |
+| `n3rv-exec` | MCP server exposing universal lint/test/typecheck (20+ langs, cache, affected) | `src/n3rv/mcp/exec_server.py:main()` |
 
 ## Evangelion Concept Map
 
@@ -199,6 +201,25 @@ Exposes 5 tools for task delegation via FastMCP.
 | `check_pending_tasks` | Check current agent's pending tasks |
 | `complete_task` | Mark task as completed |
 | `get_task` | Get task state by ID |
+
+### Exec Server (`src/n3rv/mcp/exec_server.py` + `src/n3rv/mcp/exec/`)
+
+Twin to `codebase-memory-mcp` — universal 20+ langs (`python` `js` `ts` `go` `rust` `java` `kotlin` `swift` `ruby` `php` `csharp` `cpp` `scala` `dart` `lua` `shell` `zig` `elixir` `haskell`) via `registry.py` (26+ exts, 20+ configs). SQLite WAL (`exec_runs` + `exec_file_states` + XXH3) + `ExecWatcher` debounce + `ExecService` `inputHash=fileHashes:configHash:toolHash` (70×) + `exec_affected` blast-radius (50-75% prune) + staleness banner.
+
+| Tool | Description |
+|------|-------------|
+| `exec_lint` | Universal lint (`ruff`→`eslint`→`golangci`→`clippy`→`rubocop`→...) |
+| `exec_typecheck` | Universal typecheck (`mypy`→`tsc`→`go vet`→...) |
+| `exec_test` | Universal test (`pytest`→`npm`→`go test`→...) |
+| `exec_history` | Last runs |
+| `exec_diff` | Run detail |
+| `exec_timeline` | File timeline |
+| `exec_cache_stats` | `hit_rate` |
+| `exec_affected` | Affected via code-graph |
+
+### Code Graph Server (`src/n3rv/mcp/code_graph_server.py`)
+
+Tree-sitter 20+ langs, FTS5, `code_graph_explore` (symbols+refs+blast-radius). Twin to Exec: shares WAL + watcher + staleness pattern (`_inject_staleness`).
 
 ## Agent Cards & Skill Registry
 

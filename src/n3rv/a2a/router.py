@@ -25,6 +25,19 @@ class SkillNotFoundError(RuntimeError):
     pass
 
 
+# Agent-name ↔ skill-id mismatch is a common footgun (e.g. sdd-explorer vs sdd-explore).
+# Alias legacy/agent-style ids to canonical skill ids so both work.
+_SKILL_ALIASES: dict[str, str] = {
+    "sdd-explorer": "sdd-explore",
+    "sdd-proposer": "sdd-propose",
+    "sdd-speccer": "sdd-spec",
+    "sdd-designer": "sdd-design",
+    "sdd-task-planner": "sdd-tasks",
+    "sdd-verifier": "sdd-verify",
+    "sdd-archiver": "sdd-archive",
+}
+
+
 class TaskRouter:
     """Routes delegation requests to registered agents by skill ID."""
 
@@ -52,6 +65,11 @@ class TaskRouter:
         Prepends skill docs from registry to context.
         """
         skill_id = skill_id or self._infer_skill(description)
+        # Normalize alias (e.g. sdd-explorer -> sdd-explore) before matching
+        if skill_id in _SKILL_ALIASES:
+            alias = skill_id
+            skill_id = _SKILL_ALIASES[skill_id]
+            logger.debug("aliased skill %s -> %s", alias, skill_id)
         logger.debug("routing skill=%s from=%s", skill_id, requesting_agent)
         candidates: list[tuple[str, NervAgentCard, AgentSkill]] = []
         for agent_id, card in self.cards.items():

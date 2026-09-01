@@ -62,6 +62,15 @@ _PYTHON_SERVERS: list[MCPServerInfo] = [
     ),
 ]
 
+_EXEC_SERVERS: list[MCPServerInfo] = [
+    MCPServerInfo(
+        name="n3rv-exec",
+        type="local",
+        command=["n3rv-exec"],
+        description="Run ruff/mypy/pytest with typed results",
+    ),
+]
+
 
 class MCPRecommender:
     """Detect which MCP servers to recommend based on project characteristics."""
@@ -78,6 +87,12 @@ class MCPRecommender:
 
         # Always include universal servers
         for srv in _UNIVERSAL_SERVERS:
+            if srv.name not in seen:
+                seen.add(srv.name)
+                results.append(srv)
+
+        # Universal exec — T7 harness fix (was Stack.PYTHON gated, now universal like codebase-memory-mcp)
+        for srv in _EXEC_SERVERS:
             if srv.name not in seen:
                 seen.add(srv.name)
                 results.append(srv)

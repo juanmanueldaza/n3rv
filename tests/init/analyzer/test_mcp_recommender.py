@@ -72,14 +72,14 @@ class TestMCPRecommender:
         structure = StructureInfo(has_web_files=True)
         recommender = MCPRecommender()
 
-        # Python + web should have sequential-thinking + chrome-devtools + universals
+        # Python + web should have universals + sequential-thinking + exec + chrome-devtools
         servers = recommender.detect(tmp_path, Stack.PYTHON, structure)
         names = [s.name for s in servers]
 
         # Check no duplicates
         assert len(names) == len(set(names)), f"Duplicates found: {names}"
-        # Expected: github, context7, chrome-devtools, sequential-thinking
-        assert len(servers) == 4
+        # Expected: github, context7, sequential-thinking, n3rv-exec, chrome-devtools
+        assert len(servers) == 5
 
     def test_servers_have_required_fields(self, tmp_path: Path) -> None:
         """All recommended servers have type and command (for local) or url (for remote)."""
@@ -109,3 +109,31 @@ class TestMCPRecommender:
                 first = current
             else:
                 assert first == current, f"Universal servers differ for stack={stack}: {current} vs {first}"
+
+    def test_python_gets_exec(self, tmp_path: Path) -> None:
+        """Python projects get n3rv-exec (code graph is codebase-memory-mcp)."""
+        structure = StructureInfo()
+        recommender = MCPRecommender()
+
+        servers = recommender.detect(tmp_path, Stack.PYTHON, structure)
+        names = {s.name for s in servers}
+        assert "n3rv-exec" in names
+
+    def test_non_python_no_exec(self, tmp_path: Path) -> None:
+        """T7: n3rv-exec is now universal (fixes python-only scope) — every stack gets it."""
+        structure = StructureInfo()
+        recommender = MCPRecommender()
+
+        for stack in (Stack.GENERIC, Stack.NODE, Stack.GO):
+            servers = recommender.detect(tmp_path, stack, structure)
+            names = {s.name for s in servers}
+            assert "n3rv-exec" in names, f"n3rv-exec missing for stack={stack} (T7 universal)"
+
+    def test_python_server_order(self, tmp_path: Path) -> None:
+        """Python servers are ordered: github, context7, n3rv-exec, sequential-thinking (T7)."""
+        structure = StructureInfo()
+        recommender = MCPRecommender()
+
+        servers = recommender.detect(tmp_path, Stack.PYTHON, structure)
+        names = [s.name for s in servers]
+        assert names == ["github", "context7", "n3rv-exec", "sequential-thinking"]
