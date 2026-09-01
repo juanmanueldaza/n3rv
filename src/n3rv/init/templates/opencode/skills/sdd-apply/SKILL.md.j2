@@ -12,6 +12,15 @@ allowed-tools:
   - Grep
   - mcp__n3rv-memory__memory_recall
   - mcp__n3rv-memory__memory_save
+  - mcp__n3rv-exec__exec_lint
+  - mcp__n3rv-exec__exec_test
+  - mcp__n3rv-exec__exec_typecheck
+  - mcp__n3rv-exec__exec_affected
+  - mcp__n3rv-exec__exec_history
+  - mcp__n3rv-exec__exec_timeline
+  - mcp__n3rv-code-graph__code_graph_symbols
+  - mcp__n3rv-code-graph__code_graph_references
+  - mcp__n3rv-code-graph__code_graph_explore
 model: high
 effort: high
 user-invocable: false
@@ -37,10 +46,15 @@ Implement all tasks from the task list, in order, verifying each one before movi
    - type: `context`
    - content: summary of what was changed, any deviations from the design, and test results
 
+## Execution Preference
+
+Prefer `mcp__n3rv-exec__exec_lint` / `exec_test` / `exec_typecheck` over bash `ruff check` / `pytest -q` / `mypy .` for structured PASS/FAIL. Bash is fallback if MCP unavailable.
+For incremental work, prefer `exec_lint` with watcher debounce (XXH3, `N3RV_EXEC_DEBOUNCE_MS`) and `exec_affected` for 50-75% prune; check ⚠️ Stale banner — pending sync means re-read file directly (T6).
+
 ## Rules
 
 - Do not add features beyond the task list — stay in scope
-- Run tests after every task, not just at the end
+- Run tests after every task, not just at the end (via exec MCP if available)
 - If a task conflicts with the design, note the deviation in the impl summary — do not silently deviate
 - Keep commits atomic: one task per commit
 
