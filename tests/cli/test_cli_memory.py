@@ -162,3 +162,74 @@ def test_memory_command_handles_store_errors() -> None:
 
     assert result.exit_code == 1
     assert "memory unavailable" in result.stdout
+
+
+def test_memory_list_top_level_alias() -> None:
+    """Issue #55: `n3rv memory-list` lists last 5 memories (title + type)."""
+    mock_service = Mock()
+    mock_service.memory_context.return_value = {
+        "count": 2,
+        "memories": [
+            {
+                "id": "1234567890abcdef",
+                "type": "decision",
+                "scope": "project",
+                "agent_source": "opencode",
+                "timestamp": "2025-01-01T00:00:00Z",
+                "title": "Auth strategy",
+                "content": "JWT with refresh tokens",
+            },
+            {
+                "id": "abcdef1234567890",
+                "type": "note",
+                "scope": "session",
+                "agent_source": "opencode",
+                "timestamp": "2025-01-01T00:00:00Z",
+                "title": "Ignore me",
+                "content": "Temporary",
+            },
+        ],
+    }
+
+    with (
+        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+    ):
+        result = runner.invoke(app, ["memory-list", "--limit", "5"])
+
+    assert result.exit_code == 0
+    assert "Auth strategy" in result.stdout
+    assert "decision" in result.stdout
+    mock_service.memory_context.assert_called_once_with(n=5)
+
+
+def test_memory_search_top_level_alias() -> None:
+    """Issue #55: `n3rv memory-search <query>` returns results."""
+    mock_service = Mock()
+    mock_service.memory_search.return_value = {
+        "results": [
+            {
+                "score": 0.912,
+                "type": "decision",
+                "agent_source": "opencode",
+                "title": "Auth strategy",
+                "content": "Authentication uses refresh tokens.",
+            }
+        ],
+        "nudge": None,
+    }
+
+    with (
+        patch("n3rv.cli_memory.load_runtime_settings", return_value=Mock()),
+        patch("n3rv.cli_memory.MemoryService", return_value=mock_service),
+    ):
+        result = runner.invoke(app, ["memory-search", "authentication", "--limit", "5"])
+
+    assert result.exit_code == 0
+    assert "Auth strategy" in result.stdout
+    mock_service.memory_search.assert_called_once_with(
+        query="authentication",
+        type_filter=None,
+        keyword=None,
+        limit=5,
+    )
