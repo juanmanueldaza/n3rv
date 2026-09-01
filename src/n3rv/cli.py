@@ -6,7 +6,7 @@ import typer
 
 from n3rv.a2a.hub import main as hub_main
 from n3rv.cli_code_graph import code_graph_app
-from n3rv.cli_memory import memory_app
+from n3rv.cli_memory import memory_app, memory_list, memory_search
 from n3rv.cli_org import org_app
 from n3rv.daemon import (
     daemon_enable,
@@ -168,6 +168,27 @@ def daemon_logs_cmd(
 ) -> None:
     """Tail hub daemon logs."""
     raise typer.Exit(code=daemon_logs(root))
+
+
+@app.command("memory-list")
+def memory_list_cmd(
+    type: str | None = typer.Option(None, "--type", help="Filter by memory type"),
+    scope: str | None = typer.Option(None, "--scope", help="Filter by memory scope"),
+    limit: int = typer.Option(5, "--limit", help="Maximum memories to show (default: 5)"),
+) -> None:
+    """List recent memories (top-level alias for `n3rv memory list`)."""
+    memory_list(type=type, scope=scope, limit=limit)
+
+
+@app.command("memory-search")
+def memory_search_cmd(
+    query: str = typer.Argument(..., help="Semantic query"),
+    type: str | None = typer.Option(None, "--type", help="Filter by memory type"),
+    keyword: str | None = typer.Option(None, "--keyword", help="Add a keyword content filter"),
+    limit: int = typer.Option(5, "--limit", help="Maximum results to show"),
+) -> None:
+    """Search memories (top-level alias for `n3rv memory search`)."""
+    memory_search(query=query, type=type, keyword=keyword, limit=limit)
 
 
 def main() -> None:
