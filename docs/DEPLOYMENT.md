@@ -102,6 +102,7 @@ hub:
 | `N3RV_AGENT_SOURCE` | `opencode` | Agent identifier for memory scope and hub operations |
 | `N3RV_HUB_URL` | `http://127.0.0.1:19820` | Hub URL for MCP delegation |
 | `N3RV_MEMORY_PROFILE` | `full` | Memory tool availability (`full` or `safe`) |
+| `OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS` | unset | **Process-env only, not an opencode.json key.** Set to `true` in the shell that launches `opencode` to enable `background: true` subagents (parallel dispatch of `n3rv-scout`/`n3rv-sensor` during SDD). n3rv agents degrade to foreground when unset. See ARCHITECTURE.md "Background subagents". |
 
 ## Multi-Agent Architecture
 

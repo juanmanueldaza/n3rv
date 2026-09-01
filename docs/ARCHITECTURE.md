@@ -269,3 +269,63 @@ Agent calls delegate_task(skill_id="sdd-design", description="...")
       → Task state updated to COMPLETED
       → Memory saved to session about delegation
 ```
+
+## Agent Dispatch: Native Subagents vs A2A Hub
+
+n3rv has **two** dispatch mechanisms. They are not rivals — each owns a distinct scope. This
+is a deliberate split, not redundancy.
+
+### opencode-native subagents (in-process, session-scoped)
+
+Agents defined as `.opencode/agents/*.md` (the sdd-* roster, `git-ops`, `github-ops`,
+`project-ops`, `n3rv-scout`, `n3rv-sensor`, and the `n3rv` primary). They are dispatched by
+the primary via the **Task tool** (`permission.task`) and `@mention`.
+
+- **Lifetime:** bounded by the current opencode session/process.
+- **Scope:** execution of a single phase or investigation.
+- **Cost:** cheap — no IPC/subprocess; state lives in the same session.
+- **Use for:** everything that happens *within* one working session — SDD phases, code
+  exploration, git/github operations, external-doc lookups (`n3rv-scout`), toolchain
+  checks (`n3rv-sensor`).
+
+### n3rv A2A hub (durable, cross-session, cross-project)
+
+The hub (`src/n3rv/a2a/hub.py`) routes tasks by `skill_id` via `delegate_task` /
+`check_pending_tasks`, persisting task state to disk and surviving hub restarts.
+
+- **Lifetime:** survives the session; tasks persist across restarts and projects.
+- **Scope:** handing work *between* agents, *across* projects, or *past* a session boundary.
+- **Cost:** heavier — JSON-RPC over HTTP, subprocess bridge.
+- **Use for:** long-running or multi-session jobs, cross-project handoff, anything that must
+  outlive the current opencode session. opencode-native subagents *cannot* do this; the hub
+  is the durable spine n3rv adds on top of opencode.
+
+### Decision rule
+
+> If the work must survive the current session or cross a project boundary → **A2A hub**.
+> Otherwise → **opencode-native subagent** (via the Task tool).
+
+### Background subagents (parallel dispatch)
+
+Opencode can run a subagent in the background (return immediately, notify on completion) via
+the `background: true` task parameter, e.g. launching `n3rv-scout` / `n3rv-sensor`
+concurrently during SDD explore while exploration continues.
+
+**Enablement:** this is a **process-environment** flag, **not** a config key. It cannot be set
+in `opencode.json` and the `shell.env` plugin does not apply (the flag is read by the opencode
+core, not a shell subprocess). It is read by the core task tool at
+`packages/opencode/src/tool/task.ts`:
+
+```
+Background subagents require OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true
+```
+
+Set it in the environment of the process that launches opencode:
+
+```bash
+export OPENCODE_EXPERIMENTAL_BACKGROUND_SUBAGENTS=true
+opencode
+```
+
+n3rv agents using `background: true` **always degrade to foreground** when the flag is unset,
+so the workflow never depends on it.

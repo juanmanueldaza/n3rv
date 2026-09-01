@@ -394,6 +394,19 @@ FILE_MANIFEST = [
         False,
         False,
     ),
+    # Specialist sub-agents (external knowledge + environment awareness)
+    (
+        "opencode/agents/n3rv-scout.md.j2",
+        ".opencode/agents/n3rv-scout.md",
+        False,
+        False,
+    ),
+    (
+        "opencode/agents/n3rv-sensor.md.j2",
+        ".opencode/agents/n3rv-sensor.md",
+        False,
+        False,
+    ),
 ]
 
 N3RV_DIR = Path(".n3rv")

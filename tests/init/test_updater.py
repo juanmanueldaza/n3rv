@@ -79,7 +79,7 @@ def test_deep_merge_empty_overlay():
 
 def test_manifest_has_expected_entries():
     """Test manifest has expected number of entries."""
-    assert len(FILE_UPDATE_MANIFEST) == 39
+    assert len(FILE_UPDATE_MANIFEST) == 41
 
 
 def test_manifest_marker_files():
@@ -111,7 +111,7 @@ def test_manifest_overwrite_files():
 def test_manifest_skip_default_files_are_commands():
     """Test skip default files are SDD skills, commands, and agents."""
     skip_files = [e for e in FILE_UPDATE_MANIFEST if e.strategy == UpdateStrategy.SKIP_DEFAULT]
-    assert len(skip_files) == 28
+    assert len(skip_files) == 30
     paths = {e.output_path for e in skip_files}
     assert ".opencode/skills/code/SKILL.md" in paths
     assert ".opencode/skills/testing/SKILL.md" in paths
@@ -120,6 +120,8 @@ def test_manifest_skip_default_files_are_commands():
     assert ".opencode/skills/judgment-day/SKILL.md" in paths
     assert ".opencode/commands/sdd-new.md" in paths
     assert ".opencode/agents/sdd-explorer.md" in paths
+    assert ".opencode/agents/n3rv-scout.md" in paths
+    assert ".opencode/agents/n3rv-sensor.md" in paths
 
 
 def test_manifest_git_hooks_are_executable():

@@ -26,6 +26,8 @@ def test_init_in_empty_project_creates_all_files(tmp_path: Path):
         ".opencode/skills/commits/SKILL.md",
         ".opencode/commands/sdd-new.md",
         ".opencode/agents/sdd-explorer.md",
+        ".opencode/agents/n3rv-scout.md",
+        ".opencode/agents/n3rv-sensor.md",
         # Spec-kit integration files
         ".opencode/commands/spec-kit.md",
         ".opencode/skills/sdd-spec-kit-spec/SKILL.md",
