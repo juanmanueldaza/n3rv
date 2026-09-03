@@ -322,9 +322,19 @@ This entry becomes the institutional memory for this change — searchable in fu
 └─────────────┘
 ```
 
+## Converge (gap → tasks)
+
+`n3rv converge <change_id> [--issue N]` closes the loop when verify is `NEEDS_WORK`. It re-runs verify in converge mode, emits atomic remediation tasks for every `FAIL`/`PARTIAL` criterion, overwrites `sdd-<change_id>-tasks`, and (with `--issue`) bumps the project board back to `Tasks`. The generated tasks are then implemented via the normal `sdd-apply → sdd-verify` cycle. See `src/n3rv/cli.py:converge_cmd`.
+
+CLI shortcut:
+
+```bash
+n3rv converge add-user-auth --issue 42   # verify in converge mode → sdd-add-user-auth-tasks + board
+```
+
 ## Triggering the Workflow
 
-The workflow is triggered by the opencode agent during development sessions. Each phase is a skill that can be invoked by the agent:
+The workflow is triggered by the opencode agent during development sessions. Each phase is a skill that can be invoked by the agent — or via CLI:
 
 - `sdd-explore` — when starting to think through a feature
 - `sdd-propose` — after exploration completes
@@ -334,6 +344,9 @@ The workflow is triggered by the opencode agent during development sessions. Eac
 - `sdd-apply` — after task list is ready
 - `sdd-verify` — after implementation completes
 - `sdd-archive` — after verification passes
+- `converge` — `n3rv converge <change_id>` when verify needs remediation
+- `/sdd-new <change>` — runs the full 8-phase pipeline in one opencode session
+- `/spec-kit` / `sdd-spec-kit-*` — lighter Spec-Kit path (`spec → plan → tasks`)
 
 ## Spec-Kit Integration (Optional)
 
