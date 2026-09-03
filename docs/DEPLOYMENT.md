@@ -124,10 +124,10 @@ The watcher keeps it fresh via `CodeGraphWatcher` (debounce `N3RV_EXEC_DEBOUNCE_
 
 ### 5. Org Workspace (multi-satellite, optional)
 
-For `reverberage`-style orgs with many satellites:
+For `The-Replacement`-style orgs with many satellites:
 
 ```bash
-n3rv org init --org-name reverberage         # creates .n3rv/org-config.yaml
+n3rv org init --org-name The-Replacement         # creates .n3rv/org-config.yaml
 n3rv org add-satellite my-satellite           # gh repo create + clone + n3rv init + register
 n3rv org sync --dry-run                       # preview n3rv update across all satellites
 n3rv org sync                                 # run update + regenerate skill registry

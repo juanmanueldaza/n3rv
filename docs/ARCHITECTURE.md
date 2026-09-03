@@ -264,7 +264,7 @@ TaskRouter (`src/n3rv/a2a/router.py`) matches `skill_id` from delegation request
 
 ## Org Workspace (`src/n3rv/org.py` + `cli_org.py`)
 
-For the `reverberage` multi-satellite layout: `org init` bootstraps `.n3rv/org-config.yaml` + shared skills dir. `add-satellite` creates a GitHub repo (`gh repo create`), clones, `n3rv init`s, and registers the project. `sync` runs `n3rv update` across all satellites and regenerates the hub registry. `protect` applies branch protection (required checks from CI workflow, PR review, admin enforcement).
+For the `The-Replacement` multi-satellite layout: `org init` bootstraps `.n3rv/org-config.yaml` + shared skills dir. `add-satellite` creates a GitHub repo (`gh repo create`), clones, `n3rv init`s, and registers the project. `sync` runs `n3rv update` across all satellites and regenerates the hub registry. `protect` applies branch protection (required checks from CI workflow, PR review, admin enforcement).
 
 ## Data Flow Examples
 

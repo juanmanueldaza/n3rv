@@ -87,7 +87,7 @@ n3rv memory prune   --scope session|personal|project [--older-than DAYS] [--type
 n3rv memory stats
 n3rv memory-list    # alias for memory list
 n3rv memory-search  # alias for memory search
-n3rv org init [--root PATH] [--org-name reverberage] [--force]
+n3rv org init [--root PATH] [--org-name The-Replacement] [--force]
 n3rv org add-satellite <name> [--root PATH] [--description TEXT] [--type satellite|tool]
 n3rv org sync [--root PATH] [--dry-run] [--only CATEGORY]
 n3rv org protect [project] [--root PATH] [--dry-run]
@@ -168,7 +168,7 @@ project: my-project
 /sdd-new <change>  →  explore → propose → spec → design → tasks → apply → verify → archive
 ```
 
-Each phase is an opencode skill (`sdd-*`) that saves to memory under `sdd-<change_id>-<phase>`. The hub tracks phase on the [Reverberage Roadmap](https://github.com/orgs/reverberage/projects/2) when `--issue N` is passed.
+Each phase is an opencode skill (`sdd-*`) that saves to memory under `sdd-<change_id>-<phase>`. The hub tracks phase on the [The-Replacement Roadmap](https://github.com/orgs/The-Replacement/projects/2) when `--issue N` is passed.
 
 - `n3rv converge <change_id> [--issue N]` — re-runs verify in converge mode and emits remediation tasks for any `FAIL`/`PARTIAL` acceptance criteria.
 - **Spec-Kit path** (lighter, 3 artifacts) — `sdd-spec-kit-{spec,plan,tasks}` with templates under `.specify/templates/` (byte-identical to GitHub Spec Kit, see `NOTICE.md`).

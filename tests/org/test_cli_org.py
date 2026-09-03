@@ -24,7 +24,7 @@ class TestOrgCliGroup:
     def test_org_group_exists(self) -> None:
         result = runner.invoke(app, ["org", "--help"])
         assert result.exit_code == 0
-        assert "Manage reverberage org workspace" in result.stdout
+        assert "Manage The-Replacement org workspace" in result.stdout
 
     def test_org_init_in_help(self) -> None:
         result = runner.invoke(app, ["org", "--help"])

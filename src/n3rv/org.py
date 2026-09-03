@@ -1,4 +1,4 @@
-"""Org-level configuration for reverberage multi-project workspaces."""
+"""Org-level configuration for The-Replacement multi-project workspaces."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class OrgProject(BaseModel):
 class OrgConfig(BaseModel):
     """Org-level configuration for a multi-project workspace."""
 
-    org_name: str = "reverberage"
+    org_name: str = "The-Replacement"
     projects: list[OrgProject] = []
     config: dict[str, Any] = Field(
         default_factory=lambda: {
@@ -118,7 +118,7 @@ def protect_repo(repo_url: str, dry_run: bool = False) -> bool:
     - Admin enforcement
 
     Args:
-        repo_url: Full GitHub repo URL (e.g. https://github.com/reverberage/hub)
+        repo_url: Full GitHub repo URL (e.g. https://github.com/The-Replacement/hub)
         dry_run: If True, print what would be done without applying.
 
     Returns:

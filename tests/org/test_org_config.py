@@ -33,9 +33,9 @@ class TestOrgProject:
         p = OrgProject(
             name="test",
             path=Path("satellites/test"),
-            repo_url="https://github.com/reverberage/test",
+            repo_url="https://github.com/The-Replacement/test",
         )
-        assert p.repo_url == "https://github.com/reverberage/test"
+        assert p.repo_url == "https://github.com/The-Replacement/test"
 
     def test_frozen(self) -> None:
         p = OrgProject(name="test", path=Path("."))
@@ -46,7 +46,7 @@ class TestOrgProject:
 class TestOrgConfig:
     def test_default_org_name(self) -> None:
         c = OrgConfig()
-        assert c.org_name == "reverberage"
+        assert c.org_name == "The-Replacement"
 
     def test_empty_projects(self) -> None:
         c = OrgConfig()
@@ -76,7 +76,7 @@ class TestOrgConfig:
 class TestOrgConfigYaml:
     def test_roundtrip(self, tmp_path: Path) -> None:
         config = OrgConfig(
-            org_name="reverberage",
+            org_name="The-Replacement",
             projects=[
                 OrgProject(
                     name="transcriber",
@@ -97,7 +97,7 @@ class TestOrgConfigYaml:
         assert path.exists()
 
         loaded = OrgConfig.from_yaml(path)
-        assert loaded.org_name == "reverberage"
+        assert loaded.org_name == "The-Replacement"
         assert len(loaded.projects) == 2
         assert loaded.projects[0].name == "transcriber"
         assert loaded.projects[1].type == "hub"
@@ -130,7 +130,7 @@ class TestOrgConfigYaml:
         assert len(config.projects) == 1
 
     def test_to_yaml_creates_parent_dirs(self, tmp_path: Path) -> None:
-        config = OrgConfig(org_name="reverberage")
+        config = OrgConfig(org_name="The-Replacement")
         path = tmp_path / "deep" / "nested" / ORG_CONFIG_FILENAME
         config.to_yaml(path)
         assert path.exists()
@@ -141,7 +141,7 @@ class TestResolveOrgRoot:
         n3rv_dir = tmp_path / ".n3rv"
         n3rv_dir.mkdir(parents=True)
         config_path = n3rv_dir / ORG_CONFIG_FILENAME
-        config = OrgConfig(org_name="reverberage")
+        config = OrgConfig(org_name="The-Replacement")
         config.to_yaml(config_path)
 
         root = resolve_org_root(tmp_path)
@@ -150,7 +150,7 @@ class TestResolveOrgRoot:
     def test_finds_config_in_parent_dir(self, tmp_path: Path) -> None:
         n3rv_dir = tmp_path / ".n3rv"
         n3rv_dir.mkdir(parents=True)
-        config = OrgConfig(org_name="reverberage")
+        config = OrgConfig(org_name="The-Replacement")
         config.to_yaml(n3rv_dir / ORG_CONFIG_FILENAME)
 
         child = tmp_path / "deep" / "nested"
@@ -166,7 +166,7 @@ class TestResolveOrgRoot:
 
 class TestDiscoverSatelliteCards:
     def test_no_satellites_returns_empty(self) -> None:
-        config = OrgConfig(org_name="reverberage")
+        config = OrgConfig(org_name="The-Replacement")
         cards = config.discover_satellite_cards()
         assert cards == []
 
