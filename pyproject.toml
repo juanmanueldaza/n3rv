@@ -6,7 +6,7 @@ readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [
     { name = "Juan Manuel Daza", email = "juanmanueldaza@gmail.com" },
-    { name = "reverberage", email = "dev@reverberage.org" },
+    { name = "The-Replacement", email = "dev@the-replacement.org" },
 ]
 requires-python = ">=3.11"
 keywords = ["opencode", "agent", "infrastructure", "mcp", "memory", "hub"]
