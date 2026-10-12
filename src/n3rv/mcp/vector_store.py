@@ -28,6 +28,10 @@ logger = logging.getLogger("n3rv.mcp.vector")
 
 _SIMPLE_HASH_DIM = 384
 _TOPIC_KEY_PATTERN = re.compile(r"^[a-z0-9-]+$")
+# Design docs and benchmark reports routinely run 10-30KB; the cap stops
+# MB-scale accidents, not KB-scale engineering notes. Embeddings only read
+# the first 2048 chars; full text is stored verbatim in the document.
+MAX_CONTENT_CHARS = 100_000
 
 
 class _SimpleHashEmbeddingFunction(EmbeddingFunction):
@@ -169,8 +173,8 @@ class VectorStore:
         return topic_key
 
     def validate_content(self, content: str) -> None:
-        if not content or len(content) > 10_000:
-            raise ValueError("content must be non-empty and at most 10000 characters")
+        if not content or len(content) > MAX_CONTENT_CHARS:
+            raise ValueError(f"content must be non-empty and at most {MAX_CONTENT_CHARS} characters")
 
     def validate_title(self, title: str) -> None:
         if not title or len(title) > 200:

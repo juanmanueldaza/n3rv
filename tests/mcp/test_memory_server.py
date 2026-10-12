@@ -968,3 +968,29 @@ async def test_mcp_memory_conflicts_tool(runtime_settings, monkeypatch) -> None:
     tools = await server.list_tools()
     tool_names = [t.name for t in tools]
     assert "memory_conflicts" in tool_names
+
+
+def test_memory_save_accepts_large_content(runtime_settings) -> None:
+    """KB-scale engineering docs (designs, specs) must persist verbatim."""
+    service = MemoryService(runtime_settings)
+    content = "x" * 50_000
+    saved = service.memory_save(
+        content=content,
+        title="Large doc",
+        type="context",
+        topic_key="large-doc-test",
+    )
+    assert saved["status"] == "created"
+    recalled = service.memory_recall(topic_key="large-doc-test")
+    assert recalled["found"] is True
+    assert recalled["content"] == content
+
+
+def test_memory_save_rejects_empty_and_oversize(runtime_settings) -> None:
+    from n3rv.mcp.vector_store import MAX_CONTENT_CHARS
+
+    service = MemoryService(runtime_settings)
+    with pytest.raises(ValueError, match="non-empty"):
+        service.memory_save(content="", title="Empty", type="note")
+    with pytest.raises(ValueError, match="at most"):
+        service.memory_save(content="x" * (MAX_CONTENT_CHARS + 1), title="Huge", type="note")
