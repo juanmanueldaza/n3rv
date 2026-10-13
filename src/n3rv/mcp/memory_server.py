@@ -134,7 +134,6 @@ def build_memory_server(project_root: Path | None = None):
                 service.memory_delete(
                     id=id,
                     hard_delete=hard_delete,
-                    enforce_profile=True,
                 )
             )
 
