@@ -994,3 +994,55 @@ def test_memory_save_rejects_empty_and_oversize(runtime_settings) -> None:
         service.memory_save(content="", title="Empty", type="note")
     with pytest.raises(ValueError, match="at most"):
         service.memory_save(content="x" * (MAX_CONTENT_CHARS + 1), title="Huge", type="note")
+
+
+# ---------------------------------------------------------------------------
+# MCP tool invocation
+#
+# Regression: these tests call the *registered* MCP tool (not the service
+# directly). The service-level delete tests above passed while every MCP
+# memory_delete call raised TypeError, because the tool wrapper passed a
+# keyword the service does not accept.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_mcp_delete_tool_soft_deletes_memory(runtime_settings, monkeypatch) -> None:
+    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "full")
+    service = MemoryService(runtime_settings)
+    saved = service.memory_save(
+        content="Delete this through the MCP tool.",
+        title="MCP delete",
+        type="decision",
+        topic_key="mcp-delete",
+    )
+
+    server = build_memory_server(runtime_settings.paths.project_root)
+    result = await server.call_tool("memory_delete", {"id": saved["id"]})
+
+    assert result.is_error is False
+    assert service.memory_recall(topic_key="mcp-delete")["found"] is False
+    stored = service.vector_store.collection.get(ids=[saved["id"]], include=["metadatas"])
+    assert stored["metadatas"][0]["deleted_at"]
+
+
+@pytest.mark.asyncio
+async def test_mcp_delete_tool_hard_delete_removes_memory(runtime_settings, monkeypatch) -> None:
+    monkeypatch.setenv("N3RV_MEMORY_PROFILE", "full")
+    service = MemoryService(runtime_settings)
+    saved = service.memory_save(
+        content="Hard delete this through the MCP tool.",
+        title="MCP hard delete",
+        type="decision",
+        topic_key="mcp-hard-delete",
+    )
+
+    server = build_memory_server(runtime_settings.paths.project_root)
+    result = await server.call_tool(
+        "memory_delete",
+        {"id": saved["id"], "hard_delete": True},
+    )
+
+    assert result.is_error is False
+    stored = service.vector_store.collection.get(ids=[saved["id"]], include=["metadatas"])
+    assert stored["ids"] == []
