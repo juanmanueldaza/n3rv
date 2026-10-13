@@ -12,6 +12,7 @@ from typing import Any
 
 from n3rv.init import N3RV_DIR, NERV_DIR, SDD_PHASE_MAP
 from n3rv.init.analyzer import analyze_project
+from n3rv.init.binary import resolve_n3rv_binary
 from n3rv.init.context import ProjectContext
 from n3rv.init.detector import detect_stack
 from n3rv.init.lockfile import (
@@ -324,7 +325,6 @@ def _select_manifest_entries(only: str | None) -> list[UpdateEntry]:
 
 def _check_nerv_migration_update(root: Path) -> bool:
     """Detect old .nerv/ directory and prompt user for migration."""
-    import shutil
 
     nerv_path = root / NERV_DIR
     if not nerv_path.exists():
@@ -369,7 +369,6 @@ def _check_nerv_migration_update(root: Path) -> bool:
 
 def _check_n3rv_migration_update(root: Path) -> bool:
     """Detect old .n3rv/ directory and prompt user for migration."""
-    import shutil
 
     old_path = root / N3RV_DIR
     new_path = root / ".n3rv"
@@ -437,9 +436,9 @@ def run_update(
         user_overrides_dir = root / ".n3rv" / "template-overrides"
         engine = TemplateEngine(templates_dir, user_overrides_dir=user_overrides_dir)
 
-        n3rv_binary = shutil.which("n3rv")
+        n3rv_binary = resolve_n3rv_binary()
         if not n3rv_binary:
-            print("✗ Error: n3rv binary not found in PATH")
+            print("✗ Error: n3rv binary not found next to the interpreter or on PATH")
             return 1
 
         render_ctx = {**context.to_dict(), "n3rv_binary": n3rv_binary}

@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 
 from n3rv.init.analyzer import analyze_project
+from n3rv.init.binary import resolve_n3rv_binary
 from n3rv.init.context import ProjectContext
 from n3rv.init.detector import detect_stack
 from n3rv.init.registry import write_registry
@@ -481,9 +482,9 @@ def run_init(
 
         print(f"Detected: {stack_info.stack.value} ({stack_info.project_name})")
 
-        n3rv_binary = shutil.which("n3rv")
+        n3rv_binary = resolve_n3rv_binary()
         if not n3rv_binary:
-            print("✗ Error: n3rv binary not found in PATH")
+            print("✗ Error: n3rv binary not found next to the interpreter or on PATH")
             return 1
 
         templates_dir = Path(__file__).parent / "templates"
