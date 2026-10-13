@@ -36,6 +36,18 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
+    # Trusted publishing: PyPI verifies a short-lived OIDC token issued by
+    # GitHub for this repo + workflow + environment, so no long-lived API token
+    # is stored. The same mechanism signs a PEP 740 attestation for each
+    # uploaded file, giving consumers verifiable build provenance.
+    #
+    # One-time setup on PyPI (Manage project -> Publishing) before this job can
+    # work: owner juanmanueldaza, repository n3rv, workflow publish.yml,
+    # environment pypi. Until that entry exists these uploads are rejected and
+    # PYPI_TOKEN must stay in place as the fallback.
+    environment: pypi
+    permissions:
+      id-token: write # required: mint the OIDC token
 
     steps:
       - name: Download artifacts
@@ -45,8 +57,4 @@ jobs:
           path: dist/
 
       - name: Publish to PyPI
-        env:
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          pip install twine
-          twine upload dist/* --username __token__ --password "$PYPI_TOKEN"
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from n3rv.platform import project_relative_path, resolve_project_root
+from n3rv.platform import normalize_path, project_relative_path, resolve_project_root
 
 # ---------------------------------------------------------------------------
 # Provider defaults — env-var-driven, used by factory.py and all providers
@@ -106,8 +106,21 @@ class RuntimeSettings(BaseModel):
         return f"http://{self.a2a_host}:{self.a2a_port}"
 
 
+def _project_root_from_env() -> Path | None:
+    """Explicit project root override.
+
+    Long-lived processes (MCP servers, the hub) are not always started from
+    inside the project they serve, and walking up from the working directory
+    cannot find a root in that case.
+    """
+    value = os.environ.get("N3RV_PROJECT_ROOT")
+    if not value:
+        return None
+    return normalize_path(value)
+
+
 def load_runtime_settings(project_root: Path | None = None) -> RuntimeSettings:
-    root = project_root or resolve_project_root()
+    root = project_root or _project_root_from_env() or resolve_project_root()
     paths = RuntimePaths.from_project_root(root)
     settings = RuntimeSettings(project_name=root.name or "n3rv", paths=paths)
 

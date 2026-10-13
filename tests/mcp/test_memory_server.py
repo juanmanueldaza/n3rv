@@ -4,6 +4,7 @@ import hashlib
 from datetime import UTC, datetime
 
 import pytest
+from mcp.server.mcpserver.exceptions import ToolError, UnexpectedToolError
 
 from n3rv.mcp.memory_server import build_memory_server
 from n3rv.mcp.memory_service import MemoryService
@@ -996,6 +997,28 @@ def test_memory_save_rejects_empty_and_oversize(runtime_settings) -> None:
         service.memory_save(content="x" * (MAX_CONTENT_CHARS + 1), title="Huge", type="note")
 
 
+def test_memory_save_write_failure_is_logged(runtime_settings, monkeypatch, caplog) -> None:
+    """A failing store write must log its cause.
+
+    The client only ever sees "Error executing tool memory_save": MCP reports a
+    deliberate ToolError with its message but any other exception as a bare
+    prefix. Without a server-side log line the reason is unrecoverable, which is
+    what made the intermittent save failures in issue #73 undiagnosable.
+    """
+    service = MemoryService(runtime_settings)
+
+    def exploding_save(**kwargs):
+        raise RuntimeError("store exploded")
+
+    monkeypatch.setattr(service.vector_store, "save", exploding_save)
+
+    with caplog.at_level("ERROR"), pytest.raises(RuntimeError, match="store exploded"):
+        service.memory_save(content="logged failure", title="Log", type="note")
+
+    assert "memory_save write failed" in caplog.text
+    assert "store exploded" in caplog.text
+
+
 # ---------------------------------------------------------------------------
 # MCP tool invocation
 #
@@ -1046,3 +1069,48 @@ async def test_mcp_delete_tool_hard_delete_removes_memory(runtime_settings, monk
     assert result.is_error is False
     stored = service.vector_store.collection.get(ids=[saved["id"]], include=["metadatas"])
     assert stored["ids"] == []
+
+
+# ---------------------------------------------------------------------------
+# No project root: the server must stay up (issue #74)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_memory_server_starts_without_project_root(tmp_path, monkeypatch) -> None:
+    """A missing project root must not kill the process.
+
+    Exiting makes the client restart the server in a loop, which surfaces as
+    "mcp connect failed" everywhere. The server stays up and reports the
+    condition per call, as a deliberate ``ToolError`` whose message reaches the
+    caller - not a crash wrapper that withholds it.
+    """
+    outside = tmp_path / "not-a-project"
+    outside.mkdir()
+    monkeypatch.delenv("N3RV_PROJECT_ROOT", raising=False)
+    monkeypatch.chdir(outside)
+
+    server = build_memory_server(None)  # must not raise
+
+    with pytest.raises(ToolError) as excinfo:
+        await server.call_tool("memory_stats", {})
+
+    assert "N3RV_PROJECT_ROOT" in str(excinfo.value)
+    assert not isinstance(excinfo.value, UnexpectedToolError)
+
+
+@pytest.mark.asyncio
+async def test_memory_server_honours_project_root_env(tmp_path, monkeypatch) -> None:
+    """N3RV_PROJECT_ROOT lets a server outside a project serve one anyway."""
+    served = tmp_path / "served"
+    served.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    monkeypatch.setenv("N3RV_PROJECT_ROOT", str(served))
+    monkeypatch.chdir(outside)
+
+    server = build_memory_server(None)
+
+    result = await server.call_tool("memory_stats", {})
+    assert result.is_error is False
+    assert (served / ".n3rv" / "memory").is_dir()
