@@ -26,19 +26,20 @@ def test_init_command_creates_files(tmp_path: Path):
     assert (tmp_path / ".githooks/pre-push").exists()
 
 
-def test_init_creates_opencode_json_with_env(tmp_path: Path):
-    """Test opencode.json has N3RV_AGENT_SOURCE env after init."""
+def test_init_does_not_redeclare_n3rv_mcp(tmp_path: Path):
+    """Test init leaves n3rv MCP servers to the user's global config.
+
+    Redeclaring them here with bare commands overrode the working global
+    entries with unresolvable mise shims, breaking n3rv-memory and n3rv-hub.
+    """
     (tmp_path / "pyproject.toml").write_text('[project]\nname = "clitest"')
 
     result = runner.invoke(app, ["init", "--root", str(tmp_path)])
     assert result.exit_code == 0
 
     ocode = json.loads((tmp_path / "opencode.json").read_text())
-    memory_cfg = ocode["mcp"]["n3rv-memory"]
-    hub_cfg = ocode["mcp"]["n3rv-hub"]
-
-    assert memory_cfg["environment"] == {"N3RV_AGENT_SOURCE": "opencode"}
-    assert hub_cfg["environment"] == {"N3RV_AGENT_SOURCE": "opencode"}
+    assert "n3rv-memory" not in ocode.get("mcp", {})
+    assert "n3rv-hub" not in ocode.get("mcp", {})
 
 
 def test_init_creates_systemd_unit(tmp_path: Path):

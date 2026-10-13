@@ -1,13 +1,23 @@
 /**
  * n3rv-lifecycle plugin for OpenCode.
  *
- * Three hooks:
- * 1. experimental.session.compacting — injects SDD pipeline state into
- *    compaction context so SDD state survives context overflow.
- * 2. event (session.idle) — auto-archives session summaries after 300s idle
- *    if SDD activity was detected, then auto-prunes old session memories.
+ * Two hooks:
+ * 1. session compaction - injects SDD pipeline state into the compaction
+ *    request so SDD state survives context overflow.
+ * 2. event stream (session.idle) - auto-archives session summaries after
+ *    IDLE_THRESHOLD_MS of inactivity if SDD activity was detected, then
+ *    auto-prunes old session memories.
  *
- * Uses the OpenCode 1.14.x plugin API: a factory function returning hooks.
+ * OpenCode v2 plugin API: the module default-exports a definition with a
+ * stable `id` and a `setup(ctx)` function. The factory-function form used by
+ * v1 does not load in v2 ("Expected object at [\"default\"]").
+ *
+ * v1 -> v2 hook mapping:
+ *   v1 `experimental.session.compacting` (input, output)  ->  ctx.session.hook("compaction", event)
+ *   v1 `event` hook                                       ->  ctx.event.subscribe({ signal })
+ *
+ * On compaction we push onto `event.system` instead of setting `event.result`:
+ * `result` would replace the summary and skip the model call entirely.
  */
 
 import { memoryRpc } from "../shared/rpc.js";
@@ -35,25 +45,19 @@ async function memorySessionSummary(summaryText) {
 }
 
 /**
- * Triggers memory_prune for a given scope, using the config's default TTL
- * (older_than_days = null means the MCP service resolves from RuntimeSettings).
+ * Triggers memory_prune for a given scope.
+ *
+ * Uses the shared memoryRpc helper. The v1 version inlined a fetch against a
+ * bare `MEMORY_MCP_URL` identifier that was never defined in this module, so
+ * every call raised a ReferenceError that the surrounding catch swallowed -
+ * pruning never actually ran.
  */
 async function memoryPrune(scope, typeFilter = null) {
   try {
     const params = { scope };
     if (typeFilter) params.type_filter = typeFilter;
-    const res = await fetch(`${MEMORY_MCP_URL}/rpc`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: Date.now(),
-        method: "memory_prune",
-        params,
-      }),
-      signal: AbortSignal.timeout(3000),
-    });
-    return res.ok;
+    const result = await memoryRpc("memory_prune", params);
+    return !result.error;
   } catch {
     return false;
   }
@@ -125,55 +129,60 @@ async function buildSDDSummary() {
 const IDLE_THRESHOLD_MS = 300_000; // 5 minutes
 
 // ──────────────────────────────────────────────
-// Plugin factory (OpenCode 1.14.x API)
+// Plugin definition (OpenCode v2 API)
 // ──────────────────────────────────────────────
 
-export const NervLifecycle = async (_ctx) => {
-  return {
-    /**
-     * Compaction hook: inject SDD pipeline state into compaction context.
-     * This ensures SDD state survives context overflow.
-     */
-    "experimental.session.compacting": async (_input, output) => {
+export default {
+  id: "n3rv-lifecycle",
+
+  async setup(ctx) {
+    // Compaction hook: inject SDD pipeline state into the compaction request.
+    await ctx.session.hook("compaction", async (event) => {
       try {
         const summary = await buildSDDSummary();
         if (summary) {
-          output.context.push("\n\n" + summary);
+          event.system.push({ type: "text", text: summary });
         }
       } catch {
-        // Degrade silently — never block compaction
+        // Degrade silently - never block compaction.
       }
-    },
+    });
 
-    /**
-     * Event hook: when a session goes idle, auto-archive a summary
-     * if SDD activity was detected.
-     */
-    event: async ({ event }) => {
-      try {
-        if (event.type !== "session.idle") return;
+    // Event subscription: when a session goes idle, auto-archive a summary
+    // if SDD activity was detected.
+    const controller = new AbortController();
+    let lastEventAt = Date.now();
 
-        const idleMs =
-          event.properties?.idleDurationMs ??
-          event.properties?.idleDuration ??
-          0;
-        if (idleMs < IDLE_THRESHOLD_MS) return;
+    void (async () => {
+      for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+        try {
+          lastEventAt = Date.now();
+          if (event?.type !== "session.idle") continue;
 
-        // Only archive if SDD activity detected
-        const hits = await memorySearch("sdd-", 3);
-        if (!hits || hits.length === 0) return;
+          // Prefer the reported duration; fall back to the gap since the last
+          // observed event, which is the real idle time either way.
+          const reported =
+            event.properties?.idleDurationMs ?? event.properties?.idleDuration ?? 0;
+          const idleMs = reported > 0 ? reported : Date.now() - lastEventAt;
+          if (idleMs < IDLE_THRESHOLD_MS) return;
 
-        const summary = `Session idle after ${Math.round(idleMs / 1000)}s. SDD activity detected (${hits.length} memory keys).`;
-        await memorySessionSummary(summary);
+          // Only archive if SDD activity detected.
+          const hits = await memorySearch("sdd-", 3);
+          if (!hits || hits.length === 0) return;
 
-        // Auto-prune old session memories using config defaults (7 days).
-        // This runs silently — failures don't block the lifecycle.
-        await memoryPrune("session");
-      } catch {
-        // Degrade silently — never block
+          const summary = `Session idle after ${Math.round(idleMs / 1000)}s. SDD activity detected (${hits.length} memory keys).`;
+          await memorySessionSummary(summary);
+
+          // Auto-prune old session memories using config defaults.
+          // This runs silently - failures don't block the lifecycle.
+          await memoryPrune("session");
+        } catch {
+          // Degrade silently - never block.
+        }
       }
-    },
-  };
+    })();
+
+    // Cleanup: abort the subscription when the plugin unloads.
+    return () => controller.abort();
+  },
 };
-
-export default NervLifecycle;

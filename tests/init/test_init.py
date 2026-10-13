@@ -138,14 +138,24 @@ class TestInit:
         assert lifecycle.is_file(), f"Missing {lifecycle}"
         assert shell_env.is_file(), f"Missing {shell_env}"
 
+        # OpenCode v2 requires a default-exported object with an id and a
+        # setup function. The v1 factory-function form fails to load with
+        # SchemaError(Expected object at ["default"]).
         lc_content = lifecycle.read_text(encoding="utf-8")
-        assert "NervLifecycle" in lc_content
+        assert 'id: "n3rv-lifecycle"' in lc_content
+        assert "async setup(ctx)" in lc_content
         assert "buildSDDSummary" in lc_content
-        assert "experimental.session.compacting" in lc_content
+        assert "ctx.session.hook" in lc_content
+        assert "ctx.event.subscribe" in lc_content
+        # The v1 hook name survives only in the migration doc-comment; it must
+        # not be registered as a hook key any more.
+        assert '"experimental.session.compacting":' not in lc_content
 
         se_content = shell_env.read_text(encoding="utf-8")
-        assert "NervShellEnv" in se_content
-        assert "opencode:n3rv" in se_content
+        assert 'id: "n3rv-shell-env"' in se_content
+        assert "async setup(ctx)" in se_content
+        assert "ctx.shell.hook" in se_content
+        assert "N3RV_AGENT_SOURCE" in se_content
 
     def test_tools_scaffolded_on_init(self, tmp_path: Path) -> None:
         _write_fastapi_pyproject(tmp_path)
@@ -183,10 +193,22 @@ class TestInit:
         assert oc_json.is_file()
         data = json.loads(oc_json.read_text(encoding="utf-8"))
 
-        assert "plugin" in data
-        assert len(data["plugin"]) >= 2
-        assert any("n3rv-lifecycle" in p for p in data["plugin"])
-        assert any("n3rv-shell-env" in p for p in data["plugin"])
+        # Plugins under .opencode/plugins/ are auto-discovered by OpenCode v2.
+        # Declaring them in config is redundant, and the v1 "plugin" key
+        # resolved relative paths against $HOME, spawning npm installs against
+        # nonexistent package.json paths.
+        assert "plugin" not in data
+        assert "plugins" not in data
+
+        # No provider or model is pinned: the scaffold must work with whatever
+        # credential the user already has, and must not require a secret.
+        assert "model" not in data
+        assert "provider" not in data
+
+        # n3rv MCP servers are inherited from the user's global config rather
+        # than redeclared here with unresolvable bare commands.
+        assert "n3rv-memory" not in data.get("mcp", {})
+        assert "n3rv-hub" not in data.get("mcp", {})
 
         instructions = data.get("instructions", [])
         assert "AGENTS.md" in instructions

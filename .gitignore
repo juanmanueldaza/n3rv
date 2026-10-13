@@ -3,6 +3,7 @@
 *.pyc
 __pycache__/
 .venv/
+.mise.toml
 dist/
 
 # N3RV — NEVER COMMIT (template-controlled)

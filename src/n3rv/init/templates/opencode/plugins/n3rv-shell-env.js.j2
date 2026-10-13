@@ -1,52 +1,41 @@
 /**
  * n3rv-shell-env plugin for OpenCode.
  *
- * shell.env hook: injects N3RV_AGENT_SOURCE based on the active OpenCode
- * agent name. Preserves existing value if already set.
+ * Injects N3RV_AGENT_SOURCE into the environment of every shell subprocess.
+ * Preserves an existing value if one is already set.
  *
- * Agent name → source mapping:
- *   "n3rv"          → "opencode:n3rv"
- *   "sdd-*"         → "opencode:sdd-<phase>"
- *   "git-ops"       → "opencode:git-ops"
- *   "github-ops"    → "opencode:github-ops"
- *   everything else → "opencode:unknown"
+ * OpenCode v2 plugin API: the module default-exports a definition with a
+ * stable `id` and a `setup(ctx)` function. The factory-function form used by
+ * v1 does not load in v2 ("Expected object at [\"default\"]").
  *
- * Uses the OpenCode 1.14.x plugin API: a factory function returning hooks.
+ * v1 -> v2 hook mapping:
+ *   v1 `shell.env` (input, output)  ->  v2 ctx.shell.hook("create.before", event)
+ *
+ * Behavior change (v2): the `ShellCreateBefore` event carries
+ * { command, cwd, timeout, shell, env } and no agent identifier, so the v1
+ * agent-name -> source derivation is gone. Subagent-suffixed values such as
+ * "opencode:sdd-apply" can no longer be derived from this hook. We now emit the
+ * bare provider id, which matches the static N3RV_AGENT_SOURCE already set on
+ * the n3rv MCP servers in opencode.json.
  */
 
-const AGENT_SOURCE_MAP = {
-  n3rv: "opencode:n3rv",
-  "git-ops": "opencode:git-ops",
-  "github-ops": "opencode:github-ops",
-};
+const AGENT_SOURCE = "opencode";
 
-function deriveSource(agentName) {
-  if (!agentName || typeof agentName !== "string") return "opencode:unknown";
-  if (AGENT_SOURCE_MAP[agentName]) return AGENT_SOURCE_MAP[agentName];
-  if (agentName.startsWith("sdd-"))
-    return `opencode:sdd-${agentName.replace("sdd-", "")}`;
-  return "opencode:unknown";
-}
+export default {
+  id: "n3rv-shell-env",
 
-/**
- * Plugin factory (OpenCode 1.14.x API)
- */
-export const NervShellEnv = async (_ctx) => {
-  return {
-    /** shell.env hook — runs before each shell subprocess. */
-    "shell.env": async (input, output) => {
+  async setup(ctx) {
+    await ctx.shell.hook("create.before", (event) => {
       try {
-        // Never overwrite an already-set value
-        if (output.env.N3RV_AGENT_SOURCE) return;
+        if (!event.env) return;
 
-        const agentName = input.agentName ?? input.agent ?? "";
-        const source = deriveSource(agentName);
-        output.env.N3RV_AGENT_SOURCE = source;
+        // Never overwrite an already-set value.
+        if (event.env.N3RV_AGENT_SOURCE) return;
+
+        event.env.N3RV_AGENT_SOURCE = AGENT_SOURCE;
       } catch {
-        // Degrade silently — never block OpenCode
+        // Degrade silently - never block OpenCode.
       }
-    },
-  };
+    });
+  },
 };
-
-export default NervShellEnv;

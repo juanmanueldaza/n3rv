@@ -10,7 +10,12 @@
     "stack": {
       "type": "string",
       "required": true,
-      "enum": ["python", "node", "go", "generic"],
+      "enum": [
+        "python",
+        "node",
+        "go",
+        "generic"
+      ],
       "description": "Primary technology stack detected or user-specified."
     },
     "project_root": {
@@ -46,18 +51,6 @@
       "default": false,
       "description": "True if the project has detected tools/build-systems."
     },
-    "model": {
-      "type": "string",
-      "required": false,
-      "default": "qwen3-coder-plus",
-      "description": "Default Qwen model ID for opencode (e.g. qwen3-coder-plus)."
-    },
-    "qwen_base_url": {
-      "type": "string",
-      "required": false,
-      "default": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-      "description": "Base URL for Qwen DashScope API."
-    },
     "profile_mcp_servers": {
       "type": "array",
       "required": false,
@@ -65,11 +58,26 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "MCP server name." },
-          "type": { "type": "string", "description": "Transport type (stdio, http, etc.)." },
-          "command": { "type": "string", "description": "Command string or path." },
-          "url": { "type": "string", "description": "URL for HTTP-based servers." },
-          "environment": { "type": "object", "description": "Key-value env vars for the server." }
+          "name": {
+            "type": "string",
+            "description": "MCP server name."
+          },
+          "type": {
+            "type": "string",
+            "description": "Transport type (stdio, http, etc.)."
+          },
+          "command": {
+            "type": "string",
+            "description": "Command string or path."
+          },
+          "url": {
+            "type": "string",
+            "description": "URL for HTTP-based servers."
+          },
+          "environment": {
+            "type": "object",
+            "description": "Key-value env vars for the server."
+          }
         }
       },
       "description": "Detected MCP server configurations."
@@ -81,9 +89,18 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "Framework name (e.g. fastapi, react)." },
-          "category": { "type": "string", "description": "Framework category." },
-          "guidance": { "type": "string", "description": "AI guidance text for this framework." }
+          "name": {
+            "type": "string",
+            "description": "Framework name (e.g. fastapi, react)."
+          },
+          "category": {
+            "type": "string",
+            "description": "Framework category."
+          },
+          "guidance": {
+            "type": "string",
+            "description": "AI guidance text for this framework."
+          }
         }
       },
       "description": "Detected development frameworks."
@@ -95,9 +112,18 @@
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "Tool name (e.g. pytest, eslint)." },
-          "command": { "type": "string", "description": "Shell command to invoke the tool." },
-          "category": { "type": "string", "description": "Tool category (linter, test, etc.)." }
+          "name": {
+            "type": "string",
+            "description": "Tool name (e.g. pytest, eslint)."
+          },
+          "command": {
+            "type": "string",
+            "description": "Shell command to invoke the tool."
+          },
+          "category": {
+            "type": "string",
+            "description": "Tool category (linter, test, etc.)."
+          }
         }
       },
       "description": "Detected development tools."
@@ -107,18 +133,34 @@
       "required": false,
       "default": {},
       "properties": {
-        "has_src_dir": { "type": "boolean", "description": "Project has a src/ directory." },
-        "has_tests_dir": { "type": "boolean", "description": "Project has a tests/ directory." },
-        "has_docs_dir": { "type": "boolean", "description": "Project has a docs/ directory." },
-        "has_scripts_dir": { "type": "boolean", "description": "Project has a scripts/ directory." },
+        "has_src_dir": {
+          "type": "boolean",
+          "description": "Project has a src/ directory."
+        },
+        "has_tests_dir": {
+          "type": "boolean",
+          "description": "Project has a tests/ directory."
+        },
+        "has_docs_dir": {
+          "type": "boolean",
+          "description": "Project has a docs/ directory."
+        },
+        "has_scripts_dir": {
+          "type": "boolean",
+          "description": "Project has a scripts/ directory."
+        },
         "entry_points": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Project entry point files."
         },
         "key_dirs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Significant project directories."
         }
       },
@@ -142,7 +184,12 @@
     "sdkit_feature_status": {
       "type": "string",
       "required": false,
-      "enum": ["Draft", "Proposed", "Accepted", "Implemented"],
+      "enum": [
+        "Draft",
+        "Proposed",
+        "Accepted",
+        "Implemented"
+      ],
       "description": "Status of the feature (for spec-kit templates)."
     }
   }
