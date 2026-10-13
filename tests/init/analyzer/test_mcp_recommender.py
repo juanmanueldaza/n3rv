@@ -72,14 +72,14 @@ class TestMCPRecommender:
         structure = StructureInfo(has_web_files=True)
         recommender = MCPRecommender()
 
-        # Python + web should have universals + sequential-thinking + exec + chrome-devtools
+        # Python + web should have universals + sequential-thinking + chrome-devtools
         servers = recommender.detect(tmp_path, Stack.PYTHON, structure)
         names = [s.name for s in servers]
 
         # Check no duplicates
         assert len(names) == len(set(names)), f"Duplicates found: {names}"
-        # Expected: github, context7, sequential-thinking, n3rv-exec, chrome-devtools
-        assert len(servers) == 5
+        # Expected: github, context7, sequential-thinking, chrome-devtools
+        assert len(servers) == 4
 
     def test_servers_have_required_fields(self, tmp_path: Path) -> None:
         """All recommended servers have type and command (for local) or url (for remote)."""
@@ -110,30 +110,27 @@ class TestMCPRecommender:
             else:
                 assert first == current, f"Universal servers differ for stack={stack}: {current} vs {first}"
 
-    def test_python_gets_exec(self, tmp_path: Path) -> None:
-        """Python projects get n3rv-exec (code graph is codebase-memory-mcp)."""
-        structure = StructureInfo()
+    def test_no_n3rv_servers_recommended(self, tmp_path: Path) -> None:
+        """n3rv's own MCP servers are never written into project config.
+
+        They are inherited from the user's global opencode config. Emitting
+        them with bare commands (["n3rv-exec"]) makes project config override a
+        working global entry with one that only resolves when n3rv happens to
+        be on PATH, which mise shims break.
+        """
+        structure = StructureInfo(has_web_files=True)
         recommender = MCPRecommender()
 
-        servers = recommender.detect(tmp_path, Stack.PYTHON, structure)
-        names = {s.name for s in servers}
-        assert "n3rv-exec" in names
-
-    def test_non_python_no_exec(self, tmp_path: Path) -> None:
-        """T7: n3rv-exec is now universal (fixes python-only scope) — every stack gets it."""
-        structure = StructureInfo()
-        recommender = MCPRecommender()
-
-        for stack in (Stack.GENERIC, Stack.NODE, Stack.GO):
+        for stack in Stack:
             servers = recommender.detect(tmp_path, stack, structure)
-            names = {s.name for s in servers}
-            assert "n3rv-exec" in names, f"n3rv-exec missing for stack={stack} (T7 universal)"
+            leaked = [s.name for s in servers if s.name.startswith("n3rv-")]
+            assert not leaked, f"n3rv servers leaked into scaffold for {stack}: {leaked}"
 
     def test_python_server_order(self, tmp_path: Path) -> None:
-        """Python servers are ordered: github, context7, n3rv-exec, sequential-thinking (T7)."""
+        """Python servers are ordered: github, context7, sequential-thinking."""
         structure = StructureInfo()
         recommender = MCPRecommender()
 
         servers = recommender.detect(tmp_path, Stack.PYTHON, structure)
         names = [s.name for s in servers]
-        assert names == ["github", "context7", "n3rv-exec", "sequential-thinking"]
+        assert names == ["github", "context7", "sequential-thinking"]
