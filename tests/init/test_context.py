@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as package_version
 from pathlib import Path
 
 import pytest
@@ -41,7 +43,14 @@ def test_project_context_to_dict():
 
     assert result["project_name"] == "testproject"
     assert result["stack"] == "node"  # Stack enum converted to string
-    assert result["n3rv_version"] in ("dev", "0.1.0", "0.1.1")
+    # n3rv_version is the installed distribution version, or "dev" when n3rv is
+    # not installed. Assert against that source of truth rather than a
+    # hardcoded list of releases, which broke this test on every version bump.
+    try:
+        expected_version = package_version("n3rv")
+    except PackageNotFoundError:
+        expected_version = "dev"
+    assert result["n3rv_version"] == expected_version
     assert "timestamp" in result
 
 
