@@ -1,0 +1,29 @@
+# `.specify/templates/` — Template Attribution
+
+The template files in this directory (except this NOTICE) are the canonical "core
+pack" templates from [GitHub Spec Kit](https://github.com/github/spec-kit), adopted
+verbatim by `n3rv init` so projects scaffolded by n3rv are byte-compatible with
+repositories initialized by `specify init`.
+
+## License
+
+Spec Kit is released under the MIT License.
+
+- Copyright © GitHub, Inc.
+- SPDX-License-Identifier: MIT
+- Source: https://github.com/github/spec-kit
+
+The MIT License permits the use, reproduction and distribution of these templates,
+provided the above copyright notice and permission notice are preserved in all copies
+or substantial portions. This NOTICE preserves that attribution.
+
+## Files adopted
+
+- `spec-template.md`
+- `plan-template.md`
+- `tasks-template.md`
+- `constitution-template.md`
+- `checklist-template.md`
+
+The templates are unmodified from upstream. Any local edits you make to customize
+them for this project are your own and are governed by this project's license.

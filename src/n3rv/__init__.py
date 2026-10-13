@@ -1,4 +1,4 @@
-"""n3rv: Centralized validation and provider abstraction for reverberage satellites."""
+"""n3rv: Centralized validation and provider abstraction for The-Replacement satellites."""
 
 from n3rv.limits import (
     InputValidationError,

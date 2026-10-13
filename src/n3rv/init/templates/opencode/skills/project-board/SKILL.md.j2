@@ -1,6 +1,6 @@
 ---
 name: project-board
-description: "Manage the reverberage roadmap project board: update issue status, track SDD phase progress, add issues to board."
+description: "Manage the The-Replacement roadmap project board: update issue status, track SDD phase progress, add issues to board."
 compatibility: opencode
 when_to_use: |
   - When an SDD phase completes and the board must be updated
@@ -19,12 +19,12 @@ user-invocable: false
 
 ## Board Identity
 
-All commands target the **Reverberage Roadmap** project board.
+All commands target the **The-Replacement Roadmap** project board.
 
 | Property | Value |
 |----------|-------|
 | Project number | `2` |
-| Owner | `reverberage` |
+| Owner | `The-Replacement` |
 | Project ID (GraphQL) | `PVT_kwDOEeFGTc4Bc5Ct` |
 
 ## Field IDs
@@ -99,13 +99,13 @@ gh project item-edit \
 ### Add an issue to the project board
 
 ```bash
-gh project item-add 2 --owner reverberage --url <ISSUE_URL>
+gh project item-add 2 --owner The-Replacement --url <ISSUE_URL>
 ```
 
 ### Find an item ID from an issue number
 
 ```bash
-gh api graphql -f query='query{organization(login:"reverberage"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id'
+gh api graphql -f query='query{organization(login:"The-Replacement"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id'
 ```
 
 Replace `<ISSUE_NUMBER>` with the actual issue number.
@@ -123,4 +123,4 @@ After `memory_save` succeeds in any SDD phase skill, update the board:
 - NEVER update the board before the memory_save succeeds. The board is downstream of MAGI.
 - If `ITEM_ID` is empty (issue not on board), skip the update — do NOT fail the task.
 - Always update both Status AND SDD Phase together for consistency.
-- All commands use `--owner reverberage`, never `--org`.
+- All commands use `--owner The-Replacement`, never `--org`.

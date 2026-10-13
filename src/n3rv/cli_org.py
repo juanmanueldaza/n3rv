@@ -22,14 +22,14 @@ from n3rv.org import (
 
 org_app = typer.Typer(
     name="org",
-    help="Manage reverberage org workspace: satellites, shared skills, sync",
+    help="Manage The-Replacement org workspace: satellites, shared skills, sync",
 )
 
 
 @org_app.command("init")
 def org_init(
     root: Path | None = typer.Option(None, "--root", help="Org root directory (default: CWD)"),
-    org_name: str = typer.Option("reverberage", "--org-name", help="GitHub org name"),
+    org_name: str = typer.Option("The-Replacement", "--org-name", help="GitHub org name"),
     force: bool = typer.Option(False, "--force", help="Overwrite existing config"),
 ) -> None:
     """Bootstrap an org control plane with org-config.yaml and shared skills."""

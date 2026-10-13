@@ -59,7 +59,7 @@ A structured context document saved to memory. Write no source code.
 **After saving to memory**, update the project board. Check your prompt for an issue number (look for `for issue #N` or `#<number>`). If found, execute the commands below with `<ISSUE_NUMBER>` replaced by that number. **If no issue number is present in your prompt, skip this entire section.**
 
 ```bash
-ITEM_ID=$(gh api graphql -f query='query{organization(login:"reverberage"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id')
+ITEM_ID=$(gh api graphql -f query='query{organization(login:"The-Replacement"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[] | select(.content.number == <ISSUE_NUMBER>) | .id')
 [ -n "$ITEM_ID" ] && gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhXejII --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id 47fc9ee4
 [ -n "$ITEM_ID" ] && gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhYUpaI --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id cbe57d4d
 ```

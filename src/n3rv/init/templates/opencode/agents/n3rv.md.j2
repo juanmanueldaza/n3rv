@@ -73,18 +73,18 @@ When creating a new feature/satellite/enhancement issue:
 
 1. **Create the issue** (dispatch `github-ops` or do it directly):
    ```bash
-   gh issue create --repo reverberage/hub --title "<title>" --body "<body>" --label "enhancement"
+   gh issue create --repo The-Replacement/hub --title "<title>" --body "<body>" --label "enhancement"
    ```
    Note the issue number returned.
 
 2. **Add it to the board** immediately:
    ```bash
-   gh project item-add 2 --owner reverberage --url "https://github.com/reverberage/hub/issues/<N>"
+   gh project item-add 2 --owner The-Replacement --url "https://github.com/The-Replacement/hub/issues/<N>"
    ```
 
 3. **Set initial board state** (the issue starts as Todo):
    ```bash
-   ITEM_ID=$(gh api graphql -f query='query{organization(login:"reverberage"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[]|select(.content.number==<N>).id')
+   ITEM_ID=$(gh api graphql -f query='query{organization(login:"The-Replacement"){projectV2(number:2){items(first:100){nodes{id content{...on Issue{number}}}}}}}' --jq '.data.organization.projectV2.items.nodes[]|select(.content.number==<N>).id')
    gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhXejII --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id f75ad846
    gh project item-edit --id "$ITEM_ID" --field-id PVTSSF_lADOEeFGTc4Bc5CtzhYUpaI --project-id PVT_kwDOEeFGTc4Bc5Ct --single-select-option-id f649029b
    ```
@@ -93,7 +93,7 @@ When creating a new feature/satellite/enhancement issue:
 
 ## Project Board Integration
 
-The **Reverberage Roadmap** project board (org `reverberage`, project #2) tracks all work items. When running SDD phases, always include the issue number so subagents can auto-update the board.
+The **The-Replacement Roadmap** project board (org `The-Replacement`, project #2) tracks all work items. When running SDD phases, always include the issue number so subagents can auto-update the board.
 
 Key field/option IDs are defined in the `project-board` skill. All SDD subagents automatically update the board after saving artifacts to memory — the orchestrator just needs to pass the issue number.
 
