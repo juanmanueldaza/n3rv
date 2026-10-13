@@ -36,11 +36,14 @@ def test_init_in_empty_project_creates_all_files(tmp_path: Path):
         ".specify/templates/spec-template.md",
         ".specify/templates/plan-template.md",
         ".specify/templates/tasks-template.md",
-        "constitution.md",
     ]
 
     for file_path in expected_files:
         assert (tmp_path / file_path).exists(), f"Missing file: {file_path}"
+
+    # No top-level constitution.md — AGENTS.md is the single source of truth for
+    # project rules. A placeholder-only constitution made the spec-kit plan GATE vacuous.
+    assert not (tmp_path / "constitution.md").exists()
 
 
 def test_init_rerun_without_force_skips_files(tmp_path: Path):

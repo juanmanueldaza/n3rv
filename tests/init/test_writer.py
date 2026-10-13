@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from n3rv.init.writer import (
+    GITIGNORE_PATTERNS,
     GITIGNORE_SECTION_HEADER,
     MARKER_END,
     MARKER_START,
@@ -16,13 +17,24 @@ from n3rv.init.writer import (
     write_file,
 )
 
-GITIGNORE_PATTERNS = [
+# Scaffolding paths that must never reach a repo. Asserting against the real list
+# (not a local copy) so a pattern added to writer.py cannot silently escape the check.
+REQUIRED_GITIGNORE_PATTERNS = [
     ".n3rv/",
     ".opencode/",
     ".githooks/",
+    ".specify/",
     "AGENTS.md",
+    "constitution.md",
     "opencode.json",
+    "opencode.template.json",
 ]
+
+
+def test_gitignore_patterns_cover_every_scaffolded_path():
+    """Every gitignored scaffold path must appear in GITIGNORE_PATTERNS."""
+    missing = [p for p in REQUIRED_GITIGNORE_PATTERNS if p not in GITIGNORE_PATTERNS]
+    assert not missing, f"GITIGNORE_PATTERNS is missing: {missing}"
 
 
 def test_write_new_file_creates_file(tmp_path: Path):

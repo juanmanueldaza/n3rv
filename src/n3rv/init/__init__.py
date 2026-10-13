@@ -195,8 +195,10 @@ FILE_MANIFEST = [
     ("opencode.json.j2", "opencode.json", False, False),
     ("opencode.template.json.j2", "opencode.template.json", False, False),
     ("githooks/pre-push.py.j2", ".githooks/pre-push", False, True),
-    # Constitution file (spec-kit inspired project principles)
-    ("constitution.md.j2", "constitution.md", False, False),
+    # NOTE: no top-level constitution.md. It shipped as a static file with zero
+    # Jinja variables, so every project got an all-placeholder document while the
+    # spec-kit plan GATE still graded plans against it. AGENTS.md is the single
+    # source of truth for project rules and is scaffolded with detected content.
     # Spec-kit canonical templates (byte-identical to GitHub spec-kit core pack).
     # Adopted from https://github.com/github/spec-kit (MIT, © GitHub, Inc.)
     ("spec-template.md.j2", ".specify/templates/spec-template.md", False, False),

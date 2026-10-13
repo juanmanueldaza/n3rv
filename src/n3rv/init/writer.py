@@ -122,7 +122,11 @@ GITIGNORE_PATTERNS: list[str] = [
     ".n3rv/",
     ".opencode/",
     ".githooks/",
+    ".specify/",
     "AGENTS.md",
+    # No longer scaffolded (see FILE_MANIFEST), but projects that ran init before
+    # the removal still have a placeholder constitution.md lying around.
+    "constitution.md",
     "opencode.json",
     "opencode.template.json",
 ]

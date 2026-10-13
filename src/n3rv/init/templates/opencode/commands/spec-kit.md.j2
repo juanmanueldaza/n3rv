@@ -44,7 +44,8 @@ Load the `sdd-spec-kit-spec` skill and run it for `change_id=<change_id>`.
 Load the `sdd-spec-kit-plan` skill and run it for `change_id=<change_id>`.
 - Load the spec from memory (`sdd-<change_id>-spec-kit-spec`)
 - Write an implementation plan following the canonical spec-kit template (`.specify/templates/plan-template.md`):
-  Summary, Technical Context, Constitution Check, Project Structure (concrete paths), Complexity Tracking
+  Summary, Technical Context, Constitution Check (against `AGENTS.md` — this project has no `constitution.md`;
+  the section title is fixed by the upstream template), Project Structure (concrete paths), Complexity Tracking
 - The plan must be traceable to the spec's user stories and requirements
 - Save to memory with topic_key `sdd-<change_id>-spec-kit-plan`
 - Optionally write `specs/<feature>/plan.md`
