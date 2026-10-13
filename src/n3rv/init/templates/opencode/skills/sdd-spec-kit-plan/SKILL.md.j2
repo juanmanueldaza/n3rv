@@ -16,9 +16,19 @@ user-invocable: false
 ## Goal
 
 Create an implementation plan document using the canonical spec-kit template format
-(`.specify/templates/plan-template.md`). The plan captures technical context, a constitution
+(`.specify/templates/plan-template.md`). The plan captures technical context, a project-rules
 check, the concrete project structure, and complexity tracking. It must be traceable to the
 feature specification's user stories and requirements.
+
+## Source of Truth for Project Rules
+
+Project rules live in `AGENTS.md` at the repo root — read its "Rules", "Project Conventions",
+and "Universal Rules" (REJECT if / REQUIRE) sections. There is no `constitution.md`; do not
+invent one and do not grade the plan against unfilled placeholder text.
+
+The plan section is still titled **Constitution Check** because that heading comes from the
+verbatim upstream spec-kit `plan-template.md`, which must not be edited. Treat it as a
+project-rules gate evaluated against `AGENTS.md`.
 
 ## Steps
 
@@ -33,11 +43,11 @@ feature specification's user stories and requirements.
    - **Technical Context**: Language/Version, Primary Dependencies, Storage, Testing, Target
      Platform, Project Type, Performance Goals, Constraints, Scale/Scope. Mark unknown fields
      `NEEDS CLARIFICATION`.
-   - **Constitution Check** *GATE*: Evaluate against the project `constitution.md` principles;
-     conflicts with a MUST are CRITICAL
+   - **Constitution Check** *GATE*: Evaluate against the project rules in `AGENTS.md`
+     (section title is fixed by the upstream template); conflicts with a MUST are CRITICAL
    - **Project Structure**: Documentation tree (specs/[###-feature]/...) and concrete Source
      Code tree (real paths, no Option labels), plus a Structure Decision
-   - **Complexity Tracking**: Only if constitution violations must be justified (table of
+   - **Complexity Tracking**: Only if rule violations must be justified (table of
      Violation / Why Needed / Simpler Alternative Rejected Because)
 5. Save to memory:
    - title: `SDD Plan (spec-kit): <change_id>`
@@ -56,7 +66,7 @@ feature specification's user stories and requirements.
 
 The implementation plan must be traceable to the feature specification's user stories and
 requirements. It must follow the canonical spec-kit template structure: Summary, Technical
-Context, Constitution Check, Project Structure (with concrete paths and a Structure Decision),
-and Complexity Tracking (only when constitution violations are justified). Unspecified technical
-details are flagged `NEEDS CLARIFICATION`, never silently assumed. The plan must not contradict
-the spec.
+Context, Constitution Check (against `AGENTS.md`), Project Structure (with concrete paths and a
+Structure Decision), and Complexity Tracking (only when rule violations are justified).
+Unspecified technical details are flagged `NEEDS CLARIFICATION`, never silently assumed. The plan
+must not contradict the spec.
