@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
+
+from mcp.server.mcpserver.exceptions import ToolError
 
 from n3rv.mcp.memory_service import MemoryService
 from n3rv.mcp.shared import (
@@ -16,16 +19,50 @@ from n3rv.mcp.shared import (
     resolve_runtime_settings,
     result_payload,
 )
+from n3rv.platform import ProjectRootNotFoundError
 
 logger = __import__("logging").getLogger("n3rv.mcp.memory")
 
 _SEARCH_NUDGE_THRESHOLD = 3
 
 
+class _UnavailableMemoryService:
+    """Stands in for MemoryService when no project root can be resolved.
+
+    The tools stay registered and every call fails with an actionable message.
+    Exiting instead turns a configuration problem into a crash-loop: the client
+    restarts the server, it dies again, and users of other, healthy sessions see
+    disconnected tooling.
+
+    Raises ``ToolError`` rather than a domain exception on purpose: MCP reports
+    a deliberate ``ToolError`` back to the caller with its message intact, while
+    any other exception is reported as a bare "Error executing tool ..." with
+    the text withheld, which is exactly how this became hard to diagnose.
+    """
+
+    def __init__(self, reason: str) -> None:
+        self._reason = reason
+
+    def __getattr__(self, name: str) -> Any:
+        def _unavailable(*args: Any, **kwargs: Any) -> Any:
+            raise ToolError(self._reason)
+
+        return _unavailable
+
+
 def build_memory_server(project_root: Path | None = None):
     """Build and return the n3rv-memory MCP server."""
-    settings = resolve_runtime_settings(project_root)
-    service = MemoryService(settings)
+    try:
+        settings = resolve_runtime_settings(project_root)
+    except ProjectRootNotFoundError as exc:
+        reason = (
+            f"{exc} n3rv-memory serves the project it is started in: start it from "
+            "inside a project directory, or point N3RV_PROJECT_ROOT at one."
+        )
+        logger.error("memory storage unavailable: %s", reason)
+        service: Any = _UnavailableMemoryService(reason)
+    else:
+        service = MemoryService(settings)
     server = build_mcp_server(
         "n3rv-memory",
         "Shared persistent memory for agent interactions.",
