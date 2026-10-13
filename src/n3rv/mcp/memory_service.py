@@ -205,11 +205,24 @@ class MemoryService:
             "last_accessed_at": original_last_accessed,
             "origin_uuid": origin_uuid,
         }
-        self.vector_store.save(
-            document_id=document_id,
-            content=content,
-            metadata=metadata,
-        )
+        try:
+            self.vector_store.save(
+                document_id=document_id,
+                content=content,
+                metadata=metadata,
+            )
+        except Exception:
+            # The store write is the only step here that mutates state, and when
+            # it fails the client only sees a generic tool error. Log the real
+            # cause with enough context to correlate it with a report.
+            logger.exception(
+                "memory_save write failed id=%s topic_key=%s content_chars=%d scope=%s",
+                document_id,
+                validated_topic_key,
+                len(content),
+                memory_scope.value,
+            )
+            raise
 
         conflicts = self._bm25_candidates(content, exclude_id=document_id)
 
