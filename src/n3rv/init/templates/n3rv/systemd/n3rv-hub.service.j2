@@ -6,6 +6,12 @@ After=network.target
 Type=simple
 WorkingDirectory={{ project_root }}
 ExecStart={{ n3rv_binary }} hub start
+# Hardening: keep these in the template. A re-render overwrites the installed
+# unit, so anything added only to ~/.config/systemd/user is lost on update.
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+TimeoutStopSec=30s
 Restart=on-failure
 RestartSec=5
 StandardOutput=append:{{ project_root }}/.n3rv/logs/hub.log

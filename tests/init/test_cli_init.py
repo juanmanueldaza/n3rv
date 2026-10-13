@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 
 from typer.testing import CliRunner
 
 from n3rv.cli import app
+from n3rv.init.binary import resolve_n3rv_binary
 
 runner = CliRunner()
 
@@ -53,10 +53,19 @@ def test_init_creates_systemd_unit(tmp_path: Path):
     assert unit_path.exists()
     content = unit_path.read_text()
     assert "N3RV A2A Hub for" in content
-    n3rv_binary = shutil.which("n3rv")
-    assert n3rv_binary is not None, "n3rv binary not found in PATH"
+    n3rv_binary = resolve_n3rv_binary()
+    assert n3rv_binary is not None, "n3rv binary not found next to the interpreter or on PATH"
     assert f"ExecStart={n3rv_binary} hub start" in content
     assert "Restart=on-failure" in content
+    # Hardening lives in the template: a re-render overwrites the installed
+    # unit, so directives added only to ~/.config/systemd/user would be lost.
+    for directive in (
+        "UMask=0077",
+        "NoNewPrivileges=yes",
+        "PrivateTmp=yes",
+        "TimeoutStopSec=30s",
+    ):
+        assert directive in content
 
 
 def test_init_mentions_daemon_setup(tmp_path: Path):
